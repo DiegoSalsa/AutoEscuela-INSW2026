@@ -1,21 +1,21 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const dashboardRoutes = require('./routes/dashboardRoutes');
+const apiRoutes = require('./routes/index');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// Middlewares globales
 app.use(cors());
 app.use(express.json());
 
-// Rutas
-app.use('/api/dashboard', dashboardRoutes);
+app.use('/api', apiRoutes);
+
 
 // Health check
 app.get('/', (_req, res) => {
-  res.json({ status: 'ok', message: 'AutoDrive Academy — Dashboard API' });
+  res.json({ status: 'ok', message: 'AutoDrive Academy — API' });
 });
 
 app.listen(PORT, () => {
