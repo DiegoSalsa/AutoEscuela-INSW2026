@@ -20,4 +20,4 @@ const crearReserva = async (req, res) => {
   }
 };
 
-module.exports = { crearReserva };
+module.exports = { crearReserva };

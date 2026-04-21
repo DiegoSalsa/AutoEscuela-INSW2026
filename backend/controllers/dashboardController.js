@@ -56,11 +56,21 @@ const getKPIs = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────
-// GET /api/dashboard/clases-hoy?sedeId=
+// GET /api/dashboard/clases-hoy?sedeId=&fecha=YYYY-MM-DD
+// Si no se envía fecha, usa la fecha actual
 // ─────────────────────────────────────────────
 const getClasesHoy = async (req, res) => {
   try {
     const sedeId = req.query.sedeId;
+    const fecha = req.query.fecha; // Opcional: formato YYYY-MM-DD
+
+    // Validar formato de fecha si se proporcionó
+    if (fecha && isNaN(new Date(fecha).getTime())) {
+      return res.status(400).json({ error: 'Formato de fecha inválido. Use YYYY-MM-DD.' });
+    }
+
+    const params = [];
+    let paramIndex = 1;
 
     let query = `
       SELECT
@@ -75,13 +85,18 @@ const getClasesHoy = async (req, res) => {
       JOIN usuarios e  ON r.estudiante_id  = e.id
       JOIN usuarios i  ON r.instructor_id  = i.id
       JOIN vehiculos v ON r.vehiculo_id    = v.id
-      WHERE r.fecha_inicio::date = CURRENT_DATE
     `;
 
-    const params = [];
+    if (fecha) {
+      params.push(fecha);
+      query += ` WHERE r.fecha_inicio::date = $${paramIndex++}`;
+    } else {
+      query += ` WHERE r.fecha_inicio::date = CURRENT_DATE`;
+    }
+
     if (sedeId) {
       params.push(sedeId);
-      query += ` AND r.sede_id = $1`;
+      query += ` AND r.sede_id = $${paramIndex++}`;
     }
 
     query += ` ORDER BY r.fecha_inicio ASC`;
@@ -90,7 +105,7 @@ const getClasesHoy = async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('Error en getClasesHoy:', error.message);
-    res.status(500).json({ error: 'Error al obtener las clases de hoy' });
+    res.status(500).json({ error: 'Error al obtener las clases' });
   }
 };
 

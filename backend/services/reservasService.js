@@ -8,24 +8,54 @@ const crearReservaTransaccional = async (reservaData) => {
     // 1. Iniciamos la transacción con el máximo nivel de aislamiento
     await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');
 
-    // 2. Buscamos solapamientos (condición de carrera)
+    // 2. Verificar que los recursos existen y pertenecen a la sede
+    const checkEstudianteExiste = await client.query(
+      `SELECT id FROM usuarios WHERE id = $1 AND rol = 'estudiante' AND estado = 'activo'`,
+      [estudianteId]
+    );
+    if (checkEstudianteExiste.rows.length === 0) {
+      const error = new Error('El estudiante no existe o no está activo.');
+      error.status = 404;
+      throw error;
+    }
+
+    const checkInstructorExiste = await client.query(
+      `SELECT id FROM usuarios WHERE id = $1 AND rol = 'instructor' AND estado = 'activo' AND sede_id = $2`,
+      [instructorId, sedeId]
+    );
+    if (checkInstructorExiste.rows.length === 0) {
+      const error = new Error('El instructor no existe, no está activo o no pertenece a la sede indicada.');
+      error.status = 404;
+      throw error;
+    }
+
+    const checkVehiculoExiste = await client.query(
+      `SELECT id FROM vehiculos WHERE id = $1 AND sede_id = $2`,
+      [vehiculoId, sedeId]
+    );
+    if (checkVehiculoExiste.rows.length === 0) {
+      const error = new Error('El vehículo no existe o no pertenece a la sede indicada.');
+      error.status = 404;
+      throw error;
+    }
+
+    // 3. Buscamos solapamientos de instructor, vehículo Y estudiante (condición de carrera)
     const checkQuery = `
       SELECT id FROM reservas
-      WHERE (instructor_id = $1 OR vehiculo_id = $2)
+      WHERE (instructor_id = $1 OR vehiculo_id = $2 OR estudiante_id = $5)
         AND estado IN ('confirmada', 'en_progreso', 'proxima')
         AND (fecha_inicio < $4 AND fecha_fin > $3)
     `;
-    const checkParams = [instructorId, vehiculoId, fechaInicio, fechaFin];
+    const checkParams = [instructorId, vehiculoId, fechaInicio, fechaFin, estudianteId];
     const { rows } = await client.query(checkQuery, checkParams);
 
     if (rows.length > 0) {
-      await client.query('ROLLBACK');
-      const error = new Error('Solapamiento: Instructor o vehículo ocupados en este horario.');
+      const error = new Error('Solapamiento: El instructor, vehículo o estudiante ya tienen una reserva en este horario.');
       error.status = 409; // Conflicto
       throw error;
     }
 
-    // 3. Insertamos la reserva
+    // 4. Insertamos la reserva
     const insertQuery = `
       INSERT INTO reservas (estudiante_id, instructor_id, vehiculo_id, sede_id, fecha_inicio, fecha_fin, estado)
       VALUES ($1, $2, $3, $4, $5, $6, 'confirmada')
@@ -34,7 +64,7 @@ const crearReservaTransaccional = async (reservaData) => {
     const insertParams = [estudianteId, instructorId, vehiculoId, sedeId, fechaInicio, fechaFin];
     const result = await client.query(insertQuery, insertParams);
 
-    // 4. Confir mamos los cambios
+    // 5. Confirmamos los cambios
     await client.query('COMMIT');
     return result.rows[0];
 

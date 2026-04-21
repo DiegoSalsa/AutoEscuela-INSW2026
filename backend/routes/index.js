@@ -7,4 +7,4 @@ const reservasRoutes = require('./reservasRoutes');
 router.use('/dashboard', dashboardRoutes);
 router.use('/reservas', reservasRoutes);
 
-module.exports = router;
+module.exports = router;

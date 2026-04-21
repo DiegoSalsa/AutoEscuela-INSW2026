@@ -6,4 +6,4 @@ const validation = require('../validations/reservasValidations');
 // POST /api/reservas -> [Validador] -> [Controlador]
 router.post('/', validation.validarCreacionReserva, controller.crearReserva);
 
-module.exports = router;
+module.exports = router;
