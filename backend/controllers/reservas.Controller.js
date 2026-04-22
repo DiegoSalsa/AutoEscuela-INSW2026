@@ -41,7 +41,13 @@ const obtenerReservas = async (req, res) => {
 // Obtener horarios ocupados (para disponibilidad)
 const obtenerHorariosOcupados = async (req, res) => {
   try {
-    const { fechaInicio, fechaFin, sedeId, instructorId, vehiculoId } = req.query;
+    let { vi, fi, ff, si, ii } = req.query;
+    const vehiculoId = vi;
+    const fechaInicio = fi;
+    const fechaFin = ff;
+    const sedeId = si;
+    const instructorId = ii;
+
     const ocupados = await reservasService.obtenerHorariosOcupados({
       fechaInicio, fechaFin, sedeId, instructorId, vehiculoId
     });

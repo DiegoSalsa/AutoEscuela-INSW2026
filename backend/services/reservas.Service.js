@@ -7,7 +7,7 @@ const crearReservaTransaccional = async (reservaData) => {
   try {
     await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');
 
-    // 1. Validar estudiante (activo y pertenece a la sede? decido hacerlo opcional, pero lo incluyo)
+    // 1. Validar estudiante
     const estudianteCheck = await client.query(
       `SELECT id FROM usuarios WHERE id = $1 AND rol = 'estudiante' AND estado = 'activo' AND sede_id = $2`,
       [estudianteId, sedeId]
@@ -40,7 +40,7 @@ const crearReservaTransaccional = async (reservaData) => {
       throw error;
     }
 
-    // 4. Verificar conflictos con OVERLAPS (correcto para rangos contiguos y solapados)
+    // 4. Verificar conflictos con OVERLAPS
     const conflictQuery = `
       SELECT id FROM reservas
       WHERE estado IN ('confirmada', 'en_progreso', 'proxima')
@@ -143,7 +143,7 @@ const obtenerReservas = async (filtros) => {
   return result.rows;
 };
 
-// Obtener horarios ocupados (solo rangos, sin datos extra)
+// Obtener horarios ocupados
 const obtenerHorariosOcupados = async (filtros) => {
   const { fechaInicio, fechaFin, sedeId, instructorId, vehiculoId } = filtros;
   let query = `

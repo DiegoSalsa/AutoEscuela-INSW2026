@@ -1,68 +1,91 @@
+const Joi = require('joi');
+
+const crearReservaSchema = Joi.object({
+  estudianteId: Joi.number().integer().positive().required()
+    .messages({
+      'number.base': 'estudianteId debe ser un número',
+      'number.integer': 'estudianteId debe ser un entero',
+      'number.positive': 'estudianteId debe ser positivo',
+      'any.required': 'estudianteId es obligatorio'
+    }),
+  instructorId: Joi.number().integer().positive().required()
+    .messages({
+      'number.base': 'instructorId debe ser un número',
+      'number.integer': 'instructorId debe ser un entero',
+      'number.positive': 'instructorId debe ser positivo',
+      'any.required': 'instructorId es obligatorio'
+    }),
+  vehiculoId: Joi.number().integer().positive().required()
+    .messages({
+      'number.base': 'vehiculoId debe ser un número',
+      'number.integer': 'vehiculoId debe ser un entero',
+      'number.positive': 'vehiculoId debe ser positivo',
+      'any.required': 'vehiculoId es obligatorio'
+    }),
+  sedeId: Joi.number().integer().positive().required()
+    .messages({
+      'number.base': 'sedeId debe ser un número',
+      'number.integer': 'sedeId debe ser un entero',
+      'number.positive': 'sedeId debe ser positivo',
+      'any.required': 'sedeId es obligatorio'
+    }),
+  fechaInicio: Joi.date().iso().greater('now').required()
+    .messages({
+      'date.base': 'fechaInicio debe ser una fecha válida',
+      'date.iso': 'fechaInicio debe usar formato ISO 8601',
+      'date.greater': 'fechaInicio debe ser futura',
+      'any.required': 'fechaInicio es obligatorio'
+    }),
+  fechaFin: Joi.date().iso().greater(Joi.ref('fechaInicio')).required()
+    .messages({
+      'date.base': 'fechaFin debe ser una fecha válida',
+      'date.iso': 'fechaFin debe usar formato ISO 8601',
+      'date.greater': 'fechaFin debe ser mayor que fechaInicio',
+      'any.required': 'fechaFin es obligatorio'
+    })
+});
+
+// para validar creacion de reserva
 const validarCreacionReserva = (req, res, next) => {
-  const { estudianteId, instructorId, vehiculoId, sedeId, fechaInicio, fechaFin } = req.body;
-
-  
-  // 1. Validación de campos obligatorios
-  if (!estudianteId || !instructorId || !vehiculoId || !sedeId || !fechaInicio || !fechaFin) {
-    return res.status(400).json({ 
-      error: 'Faltan campos obligatorios. Asegúrese de enviar estudianteId, instructorId, vehiculoId, sedeId, fechaInicio y fechaFin.' 
-    });
+  const { error, value } = crearReservaSchema.validate(req.body, { abortEarly: false });
+  if (error) {
+    const mensajes = error.details.map(detail => detail.message);
+    return res.status(400).json({ error: mensajes });
   }
-
-  // 2. Validación de tipos: todos los IDs deben ser enteros positivos
-  const ids = { estudianteId, instructorId, vehiculoId, sedeId };
-  for (const [campo, valor] of Object.entries(ids)) {
-    const num = Number(valor);
-    if (!Number.isInteger(num) || num <= 0) {
-      return res.status(400).json({
-        error: `El campo '${campo}' debe ser un entero positivo. Se recibió: ${valor}`
-      });
-    }
-  }
-
-  // 3. Castear los IDs a enteros (por si vienen como strings del frontend)
-  req.body.estudianteId = Number(estudianteId);
-  req.body.instructorId = Number(instructorId);
-  req.body.vehiculoId = Number(vehiculoId);
-  req.body.sedeId = Number(sedeId);
-
-  // 4. Validación de fechas: formato válido
-  const inicio = new Date(fechaInicio);
-  const fin = new Date(fechaFin);
-
-  if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
-    return res.status(400).json({
-      error: 'Las fechas proporcionadas no tienen un formato válido (ISO 8601).'
-    });
-  }
-
-  // 5. Fecha de inicio debe ser en el futuro
-  if (inicio < new Date()) {
-    return res.status(400).json({
-      error: 'No se pueden crear reservas en fechas pasadas.'
-    });
-  }
-
-  // 6. Fecha de inicio debe ser anterior a fecha de fin
-  if (inicio >= fin) {
-    return res.status(400).json({ 
-      error: 'Inconsistencia temporal: La fecha de inicio debe ser anterior a la fecha de fin.' 
-    });
-  }
-
-
-
+  // Reemplazar los valores originales con los parseados (por si Joi los cambio a numero o fecha)
+  req.body = value;
   next();
 };
 
+// Esquema para validar filtros del calendario
+const filtrosCalendarioSchema = Joi.object({
+  fi: Joi.date().iso().optional(),      // fechaInicio corta
+  ff: Joi.date().iso().optional(),      // fechaFin corta
+  s: Joi.number().integer().positive().optional(),   // sedeId
+  i: Joi.number().integer().positive().optional(),   // instructorId
+  v: Joi.number().integer().positive().optional(),   // vehiculoId
+  e: Joi.number().integer().positive().optional()    // estudianteId
+}).custom((value, helpers) => {
+  if (value.fi && value.ff && new Date(value.fi) > new Date(value.ff)) {
+    return helpers.error('date.greater', { message: 'fi no puede ser mayor que ff' });
+  }
+  return value;
+}).messages({
+  'date.iso': 'El parámetro debe ser una fecha ISO 8601',
+  'number.base': 'El parámetro debe ser un número',
+  'number.integer': 'El parámetro debe ser un entero',
+  'number.positive': 'El parámetro debe ser positivo',
+  'date.greater': 'fi no puede ser mayor que ff'
+});
+
 const validarFiltrosCalendario = (req, res, next) => {
-  const { fechaInicio, fechaFin } = req.query;
-  if (fechaInicio && isNaN(new Date(fechaInicio))) {
-    return res.status(400).json({ error: 'fechaInicio no es válida' });
+  const { error, value } = filtrosCalendarioSchema.validate(req.query, { abortEarly: false });
+  if (error) {
+    const mensajes = error.details.map(detail => detail.message);
+    return res.status(400).json({ error: mensajes });
   }
-  if (fechaFin && isNaN(new Date(fechaFin))) {
-    return res.status(400).json({ error: 'fechaFin no es válida' });
-  }
+
+  req.validatedQuery = value;
   next();
 };
 
