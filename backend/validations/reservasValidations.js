@@ -49,7 +49,6 @@ const validarCreacionReserva = (req, res, next) => {
     });
   }
 
-  // Si todo está bien, pasamos al controlador
   next();
 };
 
