@@ -1,6 +1,7 @@
 const validarCreacionReserva = (req, res, next) => {
   const { estudianteId, instructorId, vehiculoId, sedeId, fechaInicio, fechaFin } = req.body;
 
+  
   // 1. Validación de campos obligatorios
   if (!estudianteId || !instructorId || !vehiculoId || !sedeId || !fechaInicio || !fechaFin) {
     return res.status(400).json({ 
@@ -49,7 +50,20 @@ const validarCreacionReserva = (req, res, next) => {
     });
   }
 
+
+
   next();
 };
 
-module.exports = { validarCreacionReserva };
+const validarFiltrosCalendario = (req, res, next) => {
+  const { fechaInicio, fechaFin } = req.query;
+  if (fechaInicio && isNaN(new Date(fechaInicio))) {
+    return res.status(400).json({ error: 'fechaInicio no es válida' });
+  }
+  if (fechaFin && isNaN(new Date(fechaFin))) {
+    return res.status(400).json({ error: 'fechaFin no es válida' });
+  }
+  next();
+};
+
+module.exports = { validarCreacionReserva, validarFiltrosCalendario };

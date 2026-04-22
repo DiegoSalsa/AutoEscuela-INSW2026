@@ -1,4 +1,4 @@
-const dashboardService = require('../services/dashboardService');
+const dashboardService = require('../services/dashboard.Service');
 
 // ─────────────────────────────────────────────
 // GET /api/dashboard/kpis?sedeId=
