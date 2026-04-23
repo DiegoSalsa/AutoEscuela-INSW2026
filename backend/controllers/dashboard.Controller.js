@@ -1,34 +1,12 @@
 const dashboardService = require('../services/dashboard.Service');
-const NodeCache = require('node-cache');
-
-// ─── Caché en memoria: TTL 5 minutos, chequeo cada 60s ───
-const cache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
-
-/**
- * Genera una clave de caché única basada en el nombre del endpoint y parámetros.
- */
-const cacheKey = (prefix, params = {}) => {
-  const parts = Object.entries(params)
-    .filter(([, v]) => v !== undefined && v !== null)
-    .map(([k, v]) => `${k}:${v}`)
-    .sort()
-    .join('|');
-  return `${prefix}:${parts || 'all'}`;
-};
 
 // ─────────────────────────────────────────────
 // GET /api/dashboard/kpis?sedeId=
 // ─────────────────────────────────────────────
 const getKPIs = async (req, res) => {
   try {
-    const { sedeId } = req.query;
-    const key = cacheKey('kpis', { sedeId });
-
-    const cached = cache.get(key);
-    if (cached) return res.json(cached);
-
+    const sedeId = req.query.sedeId || null;
     const data = await dashboardService.getKPIs(sedeId);
-    cache.set(key, data);
     res.json(data);
   } catch (error) {
     console.error('Error en getKPIs:', error.message);
@@ -41,14 +19,15 @@ const getKPIs = async (req, res) => {
 // ─────────────────────────────────────────────
 const getClasesHoy = async (req, res) => {
   try {
-    const { sedeId, fecha } = req.query;
-    const key = cacheKey('clases-hoy', { sedeId, fecha });
+    const sedeId = req.query.sedeId || null;
+    const { fecha } = req.query;
 
-    const cached = cache.get(key);
-    if (cached) return res.json(cached);
+    // Validar formato de fecha si se proporcionó
+    if (fecha && isNaN(new Date(fecha).getTime())) {
+      return res.status(400).json({ error: 'Formato de fecha inválido. Use YYYY-MM-DD.' });
+    }
 
     const data = await dashboardService.getClasesHoy(sedeId, fecha);
-    cache.set(key, data);
     res.json(data);
   } catch (error) {
     console.error('Error en getClasesHoy:', error.message);
@@ -57,18 +36,12 @@ const getClasesHoy = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────
-// GET /api/dashboard/grafico-semana?sedeId=&dias=7
+// GET /api/dashboard/grafico-semana?sedeId=
 // ─────────────────────────────────────────────
 const getGraficoSemana = async (req, res) => {
   try {
-    const { sedeId, dias } = req.query;
-    const key = cacheKey('grafico-semana', { sedeId, dias });
-
-    const cached = cache.get(key);
-    if (cached) return res.json(cached);
-
-    const data = await dashboardService.getGraficoSemana(sedeId, dias);
-    cache.set(key, data);
+    const sedeId = req.query.sedeId || null;
+    const data = await dashboardService.getGraficoSemana(sedeId);
     res.json(data);
   } catch (error) {
     console.error('Error en getGraficoSemana:', error.message);
@@ -81,14 +54,8 @@ const getGraficoSemana = async (req, res) => {
 // ─────────────────────────────────────────────
 const getUsoFlota = async (req, res) => {
   try {
-    const { sedeId } = req.query;
-    const key = cacheKey('uso-flota', { sedeId });
-
-    const cached = cache.get(key);
-    if (cached) return res.json(cached);
-
+    const sedeId = req.query.sedeId || null;
     const data = await dashboardService.getUsoFlota(sedeId);
-    cache.set(key, data);
     res.json(data);
   } catch (error) {
     console.error('Error en getUsoFlota:', error.message);

@@ -103,56 +103,66 @@ async function getClasesHoy(sedeId, fecha) {
 }
 
 // ─────────────────────────────────────────────
-// Gráfico semanal – con relleno de días fantasma
+// Gráfico semanal – a prueba de sedes vacías
 // ─────────────────────────────────────────────
-async function getGraficoSemana(sedeId, dias = 7) {
-  const intervalo = dias - 1; // dias=7 → últimos 6 días + hoy = 7 días
-  const params = [intervalo];
-  let paramIndex = 2;
+async function getGraficoSemana(sedeId) {
+  // 1. Obtener TODAS las sedes (o la filtrada)
+  let sedesQuery = `SELECT id, nombre FROM sedes`;
+  const sedesParams = [];
+  if (sedeId) {
+    sedesQuery += ` WHERE id = $1`;
+    sedesParams.push(sedeId);
+  }
+  sedesQuery += ` ORDER BY nombre`;
+  const sedesResult = await pool.query(sedesQuery, sedesParams);
 
-  let query = `
+  // 2. Inicializar TODAS las sedes con 7 días en 0
+  const data = {};
+  sedesResult.rows.forEach((sede) => {
+    data[sede.nombre] = SEMANA_COMPLETA.map(({ dia, diaNum }) => ({
+      dia,
+      diaNum,
+      totalClases: 0,
+    }));
+  });
+
+  // 3. Consultar reservas agrupadas por sede y día
+  let reservasQuery = `
     SELECT
       s.nombre                             AS sede,
-      TO_CHAR(r.fecha_inicio, 'Day')       AS dia,
       EXTRACT(ISODOW FROM r.fecha_inicio)  AS dia_num,
       COUNT(*)                             AS total_clases
     FROM reservas r
     JOIN sedes s ON r.sede_id = s.id
-    WHERE r.fecha_inicio::date >= ${HOY_SQL} - ($1 || ' days')::INTERVAL
+    WHERE r.fecha_inicio::date >= ${HOY_SQL} - INTERVAL '6 days'
       AND r.fecha_inicio::date <= ${HOY_SQL}
       AND r.estado IN ('completada', 'en_progreso', 'confirmada')
   `;
 
+  const reservasParams = [];
   if (sedeId) {
-    params.push(sedeId);
-    query += ` AND r.sede_id = $${paramIndex++}`;
+    reservasParams.push(sedeId);
+    reservasQuery += ` AND r.sede_id = $1`;
   }
 
-  query += `
-    GROUP BY s.nombre, TO_CHAR(r.fecha_inicio, 'Day'), EXTRACT(ISODOW FROM r.fecha_inicio)
+  reservasQuery += `
+    GROUP BY s.nombre, EXTRACT(ISODOW FROM r.fecha_inicio)
     ORDER BY dia_num ASC
   `;
 
-  const result = await pool.query(query, params);
+  const reservasResult = await pool.query(reservasQuery, reservasParams);
 
-  // ── Agrupar data real por sede ───────────────
-  const dataPorSede = {};
-  result.rows.forEach((row) => {
+  // 4. Rellenar los datos reales sobre la estructura inicializada
+  reservasResult.rows.forEach((row) => {
     const sede = row.sede.trim();
-    if (!dataPorSede[sede]) dataPorSede[sede] = {};
     const diaNum = parseInt(row.dia_num, 10);
-    dataPorSede[sede][diaNum] = parseInt(row.total_clases, 10);
-  });
+    const total = parseInt(row.total_clases, 10);
 
-  // ── Rellenar los 7 días para cada sede (días fantasma) ──
-  const data = {};
-  for (const sede of Object.keys(dataPorSede)) {
-    data[sede] = SEMANA_COMPLETA.map(({ dia, diaNum }) => ({
-      dia,
-      diaNum,
-      totalClases: dataPorSede[sede][diaNum] || 0,
-    }));
-  }
+    if (data[sede]) {
+      const diaObj = data[sede].find((d) => d.diaNum === diaNum);
+      if (diaObj) diaObj.totalClases = total;
+    }
+  });
 
   return data;
 }
