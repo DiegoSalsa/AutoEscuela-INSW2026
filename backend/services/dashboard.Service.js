@@ -105,7 +105,11 @@ async function getClasesHoy(sedeId, fecha) {
 // ─────────────────────────────────────────────
 // Gráfico semanal – con relleno de días fantasma
 // ─────────────────────────────────────────────
-async function getGraficoSemana(sedeId) {
+async function getGraficoSemana(sedeId, dias = 7) {
+  const intervalo = dias - 1; // dias=7 → últimos 6 días + hoy = 7 días
+  const params = [intervalo];
+  let paramIndex = 2;
+
   let query = `
     SELECT
       s.nombre                             AS sede,
@@ -114,15 +118,14 @@ async function getGraficoSemana(sedeId) {
       COUNT(*)                             AS total_clases
     FROM reservas r
     JOIN sedes s ON r.sede_id = s.id
-    WHERE r.fecha_inicio::date >= ${HOY_SQL} - INTERVAL '6 days'
+    WHERE r.fecha_inicio::date >= ${HOY_SQL} - ($1 || ' days')::INTERVAL
       AND r.fecha_inicio::date <= ${HOY_SQL}
       AND r.estado IN ('completada', 'en_progreso', 'confirmada')
   `;
 
-  const params = [];
   if (sedeId) {
     params.push(sedeId);
-    query += ` AND r.sede_id = $1`;
+    query += ` AND r.sede_id = $${paramIndex++}`;
   }
 
   query += `
