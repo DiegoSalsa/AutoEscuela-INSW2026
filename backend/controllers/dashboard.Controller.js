@@ -63,4 +63,45 @@ const getUsoFlota = async (req, res) => {
   }
 };
 
-module.exports = { getKPIs, getClasesHoy, getGraficoSemana, getUsoFlota };
+// ─────────────────────────────────────────────
+// POST /api/dashboard/reporte-avanzado
+// ─────────────────────────────────────────────
+const generarReporte = async (req, res) => {
+  try {
+    const { fechaInicio, fechaFin, sedeId, metricasRequeridas } = req.body;
+
+    // Validación básica de campos obligatorios
+    if (!fechaInicio || !fechaFin) {
+      return res.status(400).json({
+        error: 'Los campos fechaInicio y fechaFin son obligatorios (formato YYYY-MM-DD).'
+      });
+    }
+
+    if (isNaN(new Date(fechaInicio).getTime()) || isNaN(new Date(fechaFin).getTime())) {
+      return res.status(400).json({
+        error: 'fechaInicio y fechaFin deben ser fechas válidas en formato YYYY-MM-DD.'
+      });
+    }
+
+    if (new Date(fechaInicio) > new Date(fechaFin)) {
+      return res.status(400).json({
+        error: 'fechaInicio no puede ser mayor que fechaFin.'
+      });
+    }
+
+    const parsedSedeId = sedeId ? parseInt(sedeId, 10) : null;
+    const metricas = Array.isArray(metricasRequeridas) && metricasRequeridas.length > 0
+      ? metricasRequeridas
+      : ['clases_completadas', 'uso_flota'];
+
+    const data = await dashboardService.generarReporteAvanzado(
+      fechaInicio, fechaFin, parsedSedeId, metricas
+    );
+    res.json(data);
+  } catch (error) {
+    console.error('Error en generarReporte:', error.message);
+    res.status(500).json({ error: 'Error al generar el reporte avanzado' });
+  }
+};
+
+module.exports = { getKPIs, getClasesHoy, getGraficoSemana, getUsoFlota, generarReporte };

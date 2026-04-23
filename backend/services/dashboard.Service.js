@@ -211,4 +211,89 @@ async function getUsoFlota(sedeId) {
   });
 }
 
-module.exports = { getKPIs, getClasesHoy, getGraficoSemana, getUsoFlota };
+// ─────────────────────────────────────────────
+// Reporte Avanzado – POST bajo demanda
+// ─────────────────────────────────────────────
+async function generarReporteAvanzado(fechaInicio, fechaFin, sedeId, metricasRequeridas) {
+  const reporte = {
+    periodo: { fechaInicio, fechaFin },
+    sedeId: sedeId || 'todas',
+    generadoEn: new Date().toISOString(),
+    metricas: {}
+  };
+
+  // ── Construir promesas dinámicamente según las métricas solicitadas ──
+  const promesas = [];
+  const claves = [];
+
+  // Métrica: clases_completadas
+  if (metricasRequeridas.includes('clases_completadas')) {
+    const params = [fechaInicio, fechaFin];
+    let query = `
+      SELECT COUNT(*) AS total
+      FROM reservas
+      WHERE estado = 'completada'
+        AND fecha_inicio >= $1::date
+        AND fecha_fin <= ($2::date + INTERVAL '1 day')
+    `;
+    if (sedeId) {
+      params.push(sedeId);
+      query += ` AND sede_id = $${params.length}`;
+    }
+
+    promesas.push(pool.query(query, params));
+    claves.push('clases_completadas');
+  }
+
+  // Métrica: uso_flota
+  if (metricasRequeridas.includes('uso_flota')) {
+    const params = [];
+    let query = `
+      SELECT
+        COUNT(*) FILTER (WHERE estado IN ('en_sesion', 'mantenimiento')) AS vehiculos_ocupados,
+        COUNT(*) FILTER (WHERE estado = 'disponible') AS vehiculos_disponibles,
+        COUNT(*) AS total_flota
+      FROM vehiculos
+    `;
+    if (sedeId) {
+      params.push(sedeId);
+      query += ` WHERE sede_id = $1`;
+    }
+
+    promesas.push(pool.query(query, params));
+    claves.push('uso_flota');
+  }
+
+  // ── Ejecutar todas las queries en paralelo ──
+  const resultados = await Promise.all(promesas);
+
+  // ── Mapear resultados a sus claves correspondientes ──
+  resultados.forEach((result, index) => {
+    const clave = claves[index];
+
+    if (clave === 'clases_completadas') {
+      reporte.metricas.clases_completadas = {
+        total: parseInt(result.rows[0].total, 10),
+        descripcion: `Clases completadas entre ${fechaInicio} y ${fechaFin}`
+      };
+    }
+
+    if (clave === 'uso_flota') {
+      const row = result.rows[0];
+      const ocupados = parseInt(row.vehiculos_ocupados, 10);
+      const disponibles = parseInt(row.vehiculos_disponibles, 10);
+      const total = parseInt(row.total_flota, 10);
+      reporte.metricas.uso_flota = {
+        vehiculosOcupados: ocupados,
+        vehiculosDisponibles: disponibles,
+        totalFlota: total,
+        porcentajeOcupacion: total > 0 ? parseFloat(((ocupados / total) * 100).toFixed(1)) : 0,
+        descripcion: 'Estado actual de la flota de vehículos'
+      };
+    }
+  });
+
+  return reporte;
+}
+
+module.exports = { getKPIs, getClasesHoy, getGraficoSemana, getUsoFlota, generarReporteAvanzado };
