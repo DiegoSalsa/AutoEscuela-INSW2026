@@ -9,7 +9,7 @@ const pool = new Pool({
   database: process.env.DB_NAME,
 });
 
-// Verificar conexión al arrancar
+// verificar conexion al arrancar
 pool.query('SELECT NOW()')
   .then(() => console.log('✅ Conectado a PostgreSQL'))
   .catch((err) => console.error('❌ Error de conexión a PostgreSQL:', err.message));

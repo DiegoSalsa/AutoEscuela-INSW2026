@@ -6,14 +6,14 @@ const apiRoutes = require('./routes/index.Routes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares globales
+// middlewares globales
 app.use(cors());
 app.use(express.json());
 
 app.use('/api', apiRoutes);
 
 
-// Health check
+// health check
 app.get('/', (_req, res) => {
   res.json({ status: 'ok', message: 'AutoDrive Academy — API' });
 });

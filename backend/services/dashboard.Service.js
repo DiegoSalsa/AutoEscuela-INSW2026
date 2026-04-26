@@ -1,9 +1,9 @@
 const pool = require('../db/db');
 
-// ─── Zona horaria fija para Chile ─────────────────────────────────
+// zona horaria fija para chile
 const HOY_SQL = `(CURRENT_TIMESTAMP AT TIME ZONE 'America/Santiago')::date`;
 
-// ─── Mapa de traducción de días inglés → español ──────────────────
+// mapa de traduccion de dias ingles -> español
 const DIAS_ES = {
   'Monday': 'Lunes',
   'Tuesday': 'Martes',
@@ -14,7 +14,7 @@ const DIAS_ES = {
   'Sunday': 'Domingo',
 };
 
-// Orden fijo: Lunes(1) → Domingo(7) para rellenar días fantasma
+// orden fijo: Lunes(1) -> Domingo(7) para rellenar dias fantasma
 const SEMANA_COMPLETA = [
   { dia: 'Lunes',     diaNum: 1 },
   { dia: 'Martes',    diaNum: 2 },
@@ -25,9 +25,7 @@ const SEMANA_COMPLETA = [
   { dia: 'Domingo',   diaNum: 7 },
 ];
 
-// ─────────────────────────────────────────────
-// KPIs – 4 queries en paralelo con Promise.all
-// ─────────────────────────────────────────────
+// kpis - 4 queries en paralelo con Promise.all
 async function getKPIs(sedeId) {
   const filtroSede = sedeId ? ' AND sede_id = $1' : '';
   const filtroSedeVehiculos = sedeId ? ' WHERE sede_id = $1' : '';
@@ -62,9 +60,7 @@ async function getKPIs(sedeId) {
   };
 }
 
-// ─────────────────────────────────────────────
-// Clases del día (hoy o fecha específica)
-// ─────────────────────────────────────────────
+// clases del dia (hoy o fecha especifica)
 async function getClasesHoy(sedeId, fecha) {
   const params = [];
   let paramIndex = 1;
@@ -102,11 +98,9 @@ async function getClasesHoy(sedeId, fecha) {
   return result.rows;
 }
 
-// ─────────────────────────────────────────────
-// Gráfico semanal – a prueba de sedes vacías
-// ─────────────────────────────────────────────
+// grafico semanal - a prueba de sedes vacias
 async function getGraficoSemana(sedeId) {
-  // 1. Obtener TODAS las sedes (o la filtrada)
+  // 1. obtener todas las sedes (o la filtrada)
   let sedesQuery = `SELECT id, nombre FROM sedes`;
   const sedesParams = [];
   if (sedeId) {
@@ -116,7 +110,7 @@ async function getGraficoSemana(sedeId) {
   sedesQuery += ` ORDER BY nombre`;
   const sedesResult = await pool.query(sedesQuery, sedesParams);
 
-  // 2. Inicializar TODAS las sedes con 7 días en 0
+  // 2. inicializar todas las sedes con 7 dias en 0
   const data = {};
   sedesResult.rows.forEach((sede) => {
     data[sede.nombre] = SEMANA_COMPLETA.map(({ dia, diaNum }) => ({
@@ -126,7 +120,7 @@ async function getGraficoSemana(sedeId) {
     }));
   });
 
-  // 3. Consultar reservas agrupadas por sede y día
+  // 3. consultar reservas agrupadas por sede y dia
   let reservasQuery = `
     SELECT
       s.nombre                             AS sede,
@@ -152,7 +146,7 @@ async function getGraficoSemana(sedeId) {
 
   const reservasResult = await pool.query(reservasQuery, reservasParams);
 
-  // 4. Rellenar los datos reales sobre la estructura inicializada
+  // 4. rellenar los datos reales sobre la estructura inicializada
   reservasResult.rows.forEach((row) => {
     const sede = row.sede.trim();
     const diaNum = parseInt(row.dia_num, 10);
@@ -167,9 +161,7 @@ async function getGraficoSemana(sedeId) {
   return data;
 }
 
-// ─────────────────────────────────────────────
-// Uso de flota por sede
-// ─────────────────────────────────────────────
+// uso de flota por sede
 async function getUsoFlota(sedeId) {
   let query = `
     SELECT
@@ -211,9 +203,7 @@ async function getUsoFlota(sedeId) {
   });
 }
 
-// ─────────────────────────────────────────────
-// Reporte Avanzado – POST bajo demanda
-// ─────────────────────────────────────────────
+// reporte avanzado - post bajo demanda
 async function generarReporteAvanzado(fechaInicio, fechaFin, sedeId, metricasRequeridas) {
   const reporte = {
     periodo: { fechaInicio, fechaFin },
@@ -222,11 +212,11 @@ async function generarReporteAvanzado(fechaInicio, fechaFin, sedeId, metricasReq
     metricas: {}
   };
 
-  // ── Construir promesas dinámicamente según las métricas solicitadas ──
+  // construir promesas dinamicamente segun las metricas solicitadas
   const promesas = [];
   const claves = [];
 
-  // Métrica: clases_completadas
+  // metrica: clases_completadas
   if (metricasRequeridas.includes('clases_completadas')) {
     const params = [fechaInicio, fechaFin];
     let query = `
@@ -245,7 +235,7 @@ async function generarReporteAvanzado(fechaInicio, fechaFin, sedeId, metricasReq
     claves.push('clases_completadas');
   }
 
-  // Métrica: uso_flota
+  // metrica: uso_flota
   if (metricasRequeridas.includes('uso_flota')) {
     const params = [];
     let query = `
@@ -264,10 +254,10 @@ async function generarReporteAvanzado(fechaInicio, fechaFin, sedeId, metricasReq
     claves.push('uso_flota');
   }
 
-  // ── Ejecutar todas las queries en paralelo ──
+  // ejecutar todas las queries en paralelo
   const resultados = await Promise.all(promesas);
 
-  // ── Mapear resultados a sus claves correspondientes ──
+  // mapear resultados a sus claves correspondientes
   resultados.forEach((result, index) => {
     const clave = claves[index];
 

@@ -1,8 +1,6 @@
 const dashboardService = require('../services/dashboard.Service');
 
-// ─────────────────────────────────────────────
-// GET /api/dashboard/kpis?sedeId=
-// ─────────────────────────────────────────────
+// get /api/dashboard/kpis?sedeId=
 const getKPIs = async (req, res) => {
   try {
     const sedeId = req.query.sedeId || null;
@@ -14,15 +12,13 @@ const getKPIs = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────
-// GET /api/dashboard/clases-hoy?sedeId=&fecha=YYYY-MM-DD
-// ─────────────────────────────────────────────
+// get /api/dashboard/clases-hoy?sedeId=&fecha=YYYY-MM-DD
 const getClasesHoy = async (req, res) => {
   try {
     const sedeId = req.query.sedeId || null;
     const { fecha } = req.query;
 
-    // Validar formato de fecha si se proporcionó
+    // validar formato de fecha si se proporciono
     if (fecha && isNaN(new Date(fecha).getTime())) {
       return res.status(400).json({ error: 'Formato de fecha inválido. Use YYYY-MM-DD.' });
     }
@@ -35,9 +31,7 @@ const getClasesHoy = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────
-// GET /api/dashboard/grafico-semana?sedeId=
-// ─────────────────────────────────────────────
+// get /api/dashboard/grafico-semana?sedeId=
 const getGraficoSemana = async (req, res) => {
   try {
     const sedeId = req.query.sedeId || null;
@@ -49,9 +43,7 @@ const getGraficoSemana = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────
-// GET /api/dashboard/uso-flota?sedeId=
-// ─────────────────────────────────────────────
+// get /api/dashboard/uso-flota?sedeId=
 const getUsoFlota = async (req, res) => {
   try {
     const sedeId = req.query.sedeId || null;
@@ -63,14 +55,12 @@ const getUsoFlota = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────
-// POST /api/dashboard/reporte-avanzado
-// ─────────────────────────────────────────────
+// post /api/dashboard/reporte-avanzado
 const generarReporte = async (req, res) => {
   try {
     const { fechaInicio, fechaFin, sedeId, metricasRequeridas } = req.body;
 
-    // Validación básica de campos obligatorios
+    // validacion basica de campos obligatorios
     if (!fechaInicio || !fechaFin) {
       return res.status(400).json({
         error: 'Los campos fechaInicio y fechaFin son obligatorios (formato YYYY-MM-DD).'

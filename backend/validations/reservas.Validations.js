@@ -45,19 +45,19 @@ const crearReservaSchema = Joi.object({
     })
 });
 
-// para validar creacion de reserva
+// validar creacion de reserva
 const validarCreacionReserva = (req, res, next) => {
   const { error, value } = crearReservaSchema.validate(req.body, { abortEarly: false });
   if (error) {
     const mensajes = error.details.map(detail => detail.message);
     return res.status(400).json({ error: mensajes });
   }
-  // Reemplazar los valores originales con los parseados (por si Joi los cambio a numero o fecha)
+  // reemplazar los valores originales con los parseados (por si Joi los cambio a numero o fecha)
   req.body = value;
   next();
 };
 
-// Esquema para validar filtros del calendario
+// esquema para validar filtros del calendario
 const filtrosCalendarioSchema = Joi.object({
   fi: Joi.date().iso().optional(),      // fechaInicio corta
   ff: Joi.date().iso().optional(),      // fechaFin corta

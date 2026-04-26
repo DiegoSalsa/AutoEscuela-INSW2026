@@ -1,16 +1,12 @@
-// ─────────────────────────────────────────────
-// Validación nativa para Dashboard (sin librerías externas)
-// ─────────────────────────────────────────────
+// validacion nativa para dashboard (sin librerias externas)
 
-/**
- * Middleware que valida req.query.sedeId.
- * - Si no viene, pasa directo (es opcional).
- * - Si viene, debe ser un número entero mayor a 0.
- */
+// middleware que valida req.query.sedeId
+// si no viene, pasa directo (es opcional)
+// si viene, debe ser un numero entero mayor a 0
 const validarSedeId = (req, res, next) => {
   const { sedeId } = req.query;
 
-  // sedeId es opcional; si no viene, continuar
+  // sedeId es opcional, si no viene seguimos
   if (sedeId === undefined || sedeId === '') {
     return next();
   }
@@ -23,7 +19,7 @@ const validarSedeId = (req, res, next) => {
     });
   }
 
-  // Reemplazar el string original por el entero parseado
+  // reemplazar el string original por el entero parseado
   req.query.sedeId = parsed;
   next();
 };

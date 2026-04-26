@@ -7,7 +7,7 @@ const crearReservaTransaccional = async (reservaData) => {
   try {
     await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');
 
-    // 1. Validar estudiante
+    // 1. validar estudiante
     const estudianteCheck = await client.query(
       `SELECT id FROM usuarios WHERE id = $1 AND rol = 'estudiante' AND estado = 'activo' AND sede_id = $2`,
       [estudianteId, sedeId]
@@ -18,7 +18,7 @@ const crearReservaTransaccional = async (reservaData) => {
       throw error;
     }
 
-    // 2. Validar instructor (activo y misma sede)
+    // 2. validar instructor (activo y misma sede)
     const instructorCheck = await client.query(
       `SELECT id FROM usuarios WHERE id = $1 AND rol = 'instructor' AND estado = 'activo' AND sede_id = $2`,
       [instructorId, sedeId]
@@ -29,7 +29,7 @@ const crearReservaTransaccional = async (reservaData) => {
       throw error;
     }
 
-    // 3. Validar vehículo (debe estar disponible y pertenecer a la sede)
+    // 3. validar vehiculo (debe estar disponible y pertenecer a la sede)
     const vehiculoCheck = await client.query(
       `SELECT id FROM vehiculos WHERE id = $1 AND sede_id = $2 AND estado = 'disponible'`,
       [vehiculoId, sedeId]
@@ -40,7 +40,7 @@ const crearReservaTransaccional = async (reservaData) => {
       throw error;
     }
 
-    // 4. Verificar conflictos con OVERLAPS
+    // 4. verificar conflictos con OVERLAPS
     const conflictQuery = `
       SELECT id FROM reservas
       WHERE estado IN ('confirmada', 'en_progreso', 'proxima')
@@ -60,7 +60,7 @@ const crearReservaTransaccional = async (reservaData) => {
       throw error;
     }
 
-    // 5. Insertar reserva
+    // 5. insertar reserva
     const insertQuery = `
       INSERT INTO reservas (estudiante_id, instructor_id, vehiculo_id, sede_id, fecha_inicio, fecha_fin, estado)
       VALUES ($1, $2, $3, $4, $5, $6, 'confirmada')
@@ -84,7 +84,7 @@ const crearReservaTransaccional = async (reservaData) => {
   }
 };
 
-// Obtener reservas con filtros (para el calendario)
+// obtener reservas con filtros (para el calendario)
 const obtenerReservas = async (filtros) => {
   const { fechaInicio, fechaFin, sedeId, instructorId, vehiculoId, estudianteId } = filtros;
   let query = `
@@ -143,7 +143,7 @@ const obtenerReservas = async (filtros) => {
   return result.rows;
 };
 
-// Obtener horarios ocupados
+// obtener horarios ocupados
 const obtenerHorariosOcupados = async (filtros) => {
   const { fechaInicio, fechaFin, sedeId, instructorId, vehiculoId } = filtros;
   let query = `

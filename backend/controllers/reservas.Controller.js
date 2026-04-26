@@ -14,12 +14,12 @@ const crearReserva = async (req, res) => {
   }
 };
 
-// Obtener reservas para calendario
+// obtener reservas para calendario
 const obtenerReservas = async (req, res) => {
   try {
     let { fi, ff, s, i, v, e } = req.query;
 
-    // Convertir fechas cortas a ISO
+    // convertir fechas cortas a ISO
     if (fi && !fi.includes('T')) fi = `${fi}T00:00:00.000Z`;
     if (ff && !ff.includes('T')) ff = `${ff}T23:59:59.999Z`;
 
@@ -38,7 +38,7 @@ const obtenerReservas = async (req, res) => {
   }
 };
 
-// Obtener horarios ocupados (para disponibilidad)
+// obtener horarios ocupados (para disponibilidad)
 const obtenerHorariosOcupados = async (req, res) => {
   try {
     let { vi, fi, ff, si, ii } = req.query;

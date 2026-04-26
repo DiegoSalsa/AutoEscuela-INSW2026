@@ -1,6 +1,6 @@
 const pool = require('../db/db');
 
-// ─── Helpers ─────────────────────────────────
+// helpers
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -9,14 +9,14 @@ function randomItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-/** Genera un timestamp ISO para un día y hora dados */
+// genera un timestamp ISO para un dia y hora dados
 function buildTimestamp(date, hour, minute = 0) {
   const d = new Date(date);
   d.setHours(hour, minute, 0, 0);
   return d.toISOString();
 }
 
-// ─── Datos de semilla ────────────────────────
+// datos de semilla
 const SEDES = [
   { id: 1, nombre: 'Sede Central' },
   { id: 2, nombre: 'Sede Norte' },
@@ -51,7 +51,7 @@ const MODELOS = [
 const ESTADOS_VEHICULO = ['disponible', 'mantenimiento', 'en_sesion'];
 const ESTADOS_RESERVA = ['completada', 'confirmada', 'en_progreso', 'proxima'];
 
-// ─── Función principal ──────────────────────
+// funcion principal
 async function seed() {
   const client = await pool.connect();
 
@@ -59,7 +59,7 @@ async function seed() {
     console.log('🌱 Iniciando seed...\n');
     await client.query('BEGIN');
 
-    // ── 1. Crear tablas ──
+    // 1. crear tablas
     await client.query(`
       CREATE TABLE IF NOT EXISTS sedes (
         id   SERIAL PRIMARY KEY,
@@ -97,13 +97,13 @@ async function seed() {
     `);
     console.log('✅ Tablas creadas (si no existían)');
 
-    // ── 2. Limpiar datos previos ──
+    // 2. limpiar datos previos
     await client.query(`
       TRUNCATE TABLE reservas, vehiculos, usuarios, sedes RESTART IDENTITY CASCADE;
     `);
     console.log('🗑️  Tablas limpiadas');
 
-    // ── 3. Insertar sedes ──
+    // 3. insertar sedes
     for (const sede of SEDES) {
       await client.query(
         'INSERT INTO sedes (id, nombre) VALUES ($1, $2)',
@@ -112,7 +112,7 @@ async function seed() {
     }
     console.log(`✅ ${SEDES.length} sedes insertadas`);
 
-    // ── 4. Insertar 50 usuarios (35 estudiantes + 15 instructores) ──
+    // 4. insertar 50 usuarios (35 estudiantes + 15 instructores)
     const estudianteIds = [];
     const instructorIds = [];
 
@@ -135,13 +135,13 @@ async function seed() {
     }
     console.log(`✅ 50 usuarios insertados (35 estudiantes, 15 instructores)`);
 
-    // ── 5. Insertar 20 vehículos ──
+    // 5. insertar 20 vehiculos
     const vehiculoIds = [];
     for (let i = 1; i <= 20; i++) {
       const patente = `AA-${String(100 + i)}-BB`;
       const modelo = MODELOS[i % MODELOS.length];
       const sedeId = i <= 10 ? 1 : 2;
-      // Distribuir estados: 14 disponibles, 3 en_sesion, 3 mantenimiento
+      // distribuir estados: 14 disponibles, 3 en_sesion, 3 mantenimiento
       let estado;
       if (i <= 3) estado = 'en_sesion';
       else if (i <= 6) estado = 'mantenimiento';
@@ -155,9 +155,9 @@ async function seed() {
     }
     console.log(`✅ 20 vehículos insertados`);
 
-    // ── 6. Insertar 30 reservas ──
+    // 6. insertar 30 reservas
     const hoy = new Date();
-    // Generar fechas de la última semana para el gráfico
+    // generar fechas de la ultima semana para el grafico
     const fechas = [];
     for (let d = -6; d <= 0; d++) {
       const fecha = new Date(hoy);
@@ -174,7 +174,7 @@ async function seed() {
       let fecha, estado;
 
       if (i < 10) {
-        // 10 reservas HOY (para /clases-hoy y /uso-flota)
+        // 10 reservas hoy (para /clases-hoy y /uso-flota)
         fecha = hoy;
         estado = randomItem(['confirmada', 'en_progreso', 'proxima']);
       } else if (i < 22) {
