@@ -1,20 +1,7 @@
-const pool = require('../db/db');
+const { AppDataSource } = require('../db/data-source');
 
-// zona horaria fija para chile
 const HOY_SQL = `(CURRENT_TIMESTAMP AT TIME ZONE 'America/Santiago')::date`;
 
-// mapa de traduccion de dias ingles -> español
-const DIAS_ES = {
-  'Monday': 'Lunes',
-  'Tuesday': 'Martes',
-  'Wednesday': 'Miércoles',
-  'Thursday': 'Jueves',
-  'Friday': 'Viernes',
-  'Saturday': 'Sábado',
-  'Sunday': 'Domingo',
-};
-
-// orden fijo: Lunes(1) -> Domingo(7) para rellenar dias fantasma
 const SEMANA_COMPLETA = [
   { dia: 'Lunes',     diaNum: 1 },
   { dia: 'Martes',    diaNum: 2 },
@@ -25,265 +12,229 @@ const SEMANA_COMPLETA = [
   { dia: 'Domingo',   diaNum: 7 },
 ];
 
-// kpis - 4 queries en paralelo con Promise.all
+// KPIs — 4 queries en paralelo con Promise.all
 async function getKPIs(sedeId) {
-  const filtroSede = sedeId ? ' AND sede_id = $1' : '';
-  const filtroSedeVehiculos = sedeId ? ' WHERE sede_id = $1' : '';
-  const params = sedeId ? [sedeId] : [];
+  const rU = AppDataSource.getRepository('Usuario');
+  const rR = AppDataSource.getRepository('Reserva');
+  const rV = AppDataSource.getRepository('Vehiculo');
 
-  const [estudiantesRes, clasesRes, disponiblesRes, flotaRes] = await Promise.all([
-    pool.query(
-      `SELECT COUNT(*) AS total FROM usuarios WHERE rol = 'estudiante' AND estado = 'activo'${filtroSede}`,
-      params
-    ),
-    pool.query(
-      `SELECT COUNT(*) AS total FROM reservas WHERE estado = 'completada'${filtroSede}`,
-      params
-    ),
-    pool.query(
-      `SELECT COUNT(*) AS total FROM vehiculos WHERE estado = 'disponible'${filtroSede}`,
-      params
-    ),
-    pool.query(
-      `SELECT COUNT(*) AS total FROM vehiculos${filtroSedeVehiculos}`,
-      params
-    ),
+  const qE = rU.createQueryBuilder('u').select('COUNT(*)', 'total')
+    .where("u.rol = 'estudiante'").andWhere("u.estado = 'activo'");
+  const qC = rR.createQueryBuilder('r').select('COUNT(*)', 'total')
+    .where("r.estado = 'completada'");
+  const qD = rV.createQueryBuilder('v').select('COUNT(*)', 'total')
+    .where("v.estado = 'disponible'");
+  const qF = rV.createQueryBuilder('v').select('COUNT(*)', 'total');
+
+  if (sedeId) {
+    qE.andWhere('u.sede_id = :sedeId', { sedeId });
+    qC.andWhere('r.sede_id = :sedeId', { sedeId });
+    qD.andWhere('v.sede_id = :sedeId', { sedeId });
+    qF.andWhere('v.sede_id = :sedeId', { sedeId });
+  }
+
+  const [estRes, clsRes, disRes, fltRes] = await Promise.all([
+    qE.getRawOne(), qC.getRawOne(), qD.getRawOne(), qF.getRawOne(),
   ]);
 
-  const disponibles = parseInt(disponiblesRes.rows[0].total, 10);
-  const flota = parseInt(flotaRes.rows[0].total, 10);
+  const d = parseInt(disRes.total, 10);
+  const f = parseInt(fltRes.total, 10);
 
   return {
-    estudiantesActivos: parseInt(estudiantesRes.rows[0].total, 10),
-    clasesCompletadas: parseInt(clasesRes.rows[0].total, 10),
-    vehiculosDisponibles: `${disponibles}/${flota}`,
+    estudiantesActivos: parseInt(estRes.total, 10),
+    clasesCompletadas: parseInt(clsRes.total, 10),
+    vehiculosDisponibles: `${d}/${f}`,
   };
 }
 
-// clases del dia (hoy o fecha especifica)
+// Clases del dia
 async function getClasesHoy(sedeId, fecha) {
-  const params = [];
-  let paramIndex = 1;
-
-  let query = `
-    SELECT
-      r.id          AS reserva_id,
-      e.nombre      AS estudiante,
-      i.nombre      AS instructor,
-      v.patente     AS vehiculo,
-      r.estado      AS estado,
-      r.fecha_inicio,
-      r.fecha_fin
-    FROM reservas r
-    JOIN usuarios e  ON r.estudiante_id  = e.id
-    JOIN usuarios i  ON r.instructor_id  = i.id
-    JOIN vehiculos v ON r.vehiculo_id    = v.id
-  `;
+  const qb = AppDataSource.getRepository('Reserva').createQueryBuilder('r')
+    .select([
+      'r.id AS reserva_id', 'e.nombre AS estudiante', 'i.nombre AS instructor',
+      'v.patente AS vehiculo', 'r.estado AS estado',
+      'r.fecha_inicio AS fecha_inicio', 'r.fecha_fin AS fecha_fin',
+    ])
+    .innerJoin('usuarios', 'e', 'r.estudiante_id = e.id')
+    .innerJoin('usuarios', 'i', 'r.instructor_id = i.id')
+    .innerJoin('vehiculos', 'v', 'r.vehiculo_id = v.id');
 
   if (fecha) {
-    params.push(fecha);
-    query += ` WHERE r.fecha_inicio::date = $${paramIndex++}`;
+    qb.where('r.fecha_inicio::date = :fecha', { fecha });
   } else {
-    query += ` WHERE r.fecha_inicio::date = ${HOY_SQL}`;
+    qb.where(`r.fecha_inicio::date = ${HOY_SQL}`);
   }
-
-  if (sedeId) {
-    params.push(sedeId);
-    query += ` AND r.sede_id = $${paramIndex++}`;
-  }
-
-  query += ` ORDER BY r.fecha_inicio ASC`;
-
-  const result = await pool.query(query, params);
-  return result.rows;
+  if (sedeId) qb.andWhere('r.sede_id = :sedeId', { sedeId });
+  qb.orderBy('r.fecha_inicio', 'ASC');
+  return qb.getRawMany();
 }
 
-// grafico semanal - a prueba de sedes vacias
+// Grafico semanal — con dias fantasma
 async function getGraficoSemana(sedeId) {
-  // 1. obtener todas las sedes (o la filtrada)
-  let sedesQuery = `SELECT id, nombre FROM sedes`;
-  const sedesParams = [];
-  if (sedeId) {
-    sedesQuery += ` WHERE id = $1`;
-    sedesParams.push(sedeId);
-  }
-  sedesQuery += ` ORDER BY nombre`;
-  const sedesResult = await pool.query(sedesQuery, sedesParams);
+  const qS = AppDataSource.getRepository('Sede').createQueryBuilder('s')
+    .select(['s.id', 's.nombre']).orderBy('s.nombre', 'ASC');
+  if (sedeId) qS.where('s.id = :sedeId', { sedeId });
+  const sedes = await qS.getRawMany();
 
-  // 2. inicializar todas las sedes con 7 dias en 0
   const data = {};
-  sedesResult.rows.forEach((sede) => {
-    data[sede.nombre] = SEMANA_COMPLETA.map(({ dia, diaNum }) => ({
-      dia,
-      diaNum,
-      totalClases: 0,
+  sedes.forEach((s) => {
+    data[s.s_nombre] = SEMANA_COMPLETA.map(({ dia, diaNum }) => ({
+      dia, diaNum, totalClases: 0,
     }));
   });
 
-  // 3. consultar reservas agrupadas por sede y dia
-  let reservasQuery = `
-    SELECT
-      s.nombre                             AS sede,
-      EXTRACT(ISODOW FROM r.fecha_inicio)  AS dia_num,
-      COUNT(*)                             AS total_clases
-    FROM reservas r
-    JOIN sedes s ON r.sede_id = s.id
-    WHERE r.fecha_inicio::date >= ${HOY_SQL} - INTERVAL '6 days'
-      AND r.fecha_inicio::date <= ${HOY_SQL}
-      AND r.estado IN ('completada', 'en_progreso', 'confirmada')
-  `;
+  const qR = AppDataSource.getRepository('Reserva').createQueryBuilder('r')
+    .select([
+      's.nombre AS sede',
+      'EXTRACT(ISODOW FROM r.fecha_inicio) AS dia_num',
+      'COUNT(*) AS total_clases',
+    ])
+    .innerJoin('sedes', 's', 'r.sede_id = s.id')
+    .where(`r.fecha_inicio::date >= ${HOY_SQL} - INTERVAL '6 days'`)
+    .andWhere(`r.fecha_inicio::date <= ${HOY_SQL}`)
+    .andWhere("r.estado IN ('completada','en_progreso','confirmada')");
 
-  const reservasParams = [];
-  if (sedeId) {
-    reservasParams.push(sedeId);
-    reservasQuery += ` AND r.sede_id = $1`;
-  }
+  if (sedeId) qR.andWhere('r.sede_id = :sedeId', { sedeId });
+  qR.groupBy('s.nombre').addGroupBy('EXTRACT(ISODOW FROM r.fecha_inicio)')
+    .orderBy('dia_num', 'ASC');
 
-  reservasQuery += `
-    GROUP BY s.nombre, EXTRACT(ISODOW FROM r.fecha_inicio)
-    ORDER BY dia_num ASC
-  `;
-
-  const reservasResult = await pool.query(reservasQuery, reservasParams);
-
-  // 4. rellenar los datos reales sobre la estructura inicializada
-  reservasResult.rows.forEach((row) => {
+  const rows = await qR.getRawMany();
+  rows.forEach((row) => {
     const sede = row.sede.trim();
-    const diaNum = parseInt(row.dia_num, 10);
-    const total = parseInt(row.total_clases, 10);
-
+    const dN = parseInt(row.dia_num, 10);
+    const t = parseInt(row.total_clases, 10);
     if (data[sede]) {
-      const diaObj = data[sede].find((d) => d.diaNum === diaNum);
-      if (diaObj) diaObj.totalClases = total;
+      const d = data[sede].find((x) => x.diaNum === dN);
+      if (d) d.totalClases = t;
     }
   });
 
   return data;
 }
 
-// uso de flota por sede
+// Uso de flota
 async function getUsoFlota(sedeId) {
-  let query = `
-    SELECT
-      s.nombre                     AS sede,
-      COUNT(DISTINCT v.id)         AS vehiculos_en_uso,
-      (SELECT COUNT(*) FROM vehiculos v2 WHERE v2.sede_id = s.id) AS total_flota
-    FROM sedes s
-    LEFT JOIN vehiculos v ON v.sede_id = s.id
-      AND (
-        v.estado = 'en_sesion'
-        OR v.id IN (
-          SELECT r.vehiculo_id
-          FROM reservas r
-          WHERE r.fecha_inicio::date = ${HOY_SQL}
-            AND r.estado IN ('confirmada', 'en_progreso')
-        )
-      )
-  `;
+  const qb = AppDataSource.getRepository('Sede').createQueryBuilder('s')
+    .select([
+      's.nombre AS sede',
+      'COUNT(DISTINCT v.id) AS vehiculos_en_uso',
+      '(SELECT COUNT(*) FROM vehiculos v2 WHERE v2.sede_id = s.id) AS total_flota',
+    ])
+    .leftJoin('vehiculos', 'v',
+      `v.sede_id = s.id AND (v.estado = 'en_sesion' OR v.id IN (` +
+      `SELECT r.vehiculo_id FROM reservas r ` +
+      `WHERE r.fecha_inicio::date = ${HOY_SQL} ` +
+      `AND r.estado IN ('confirmada','en_progreso')))`
+    );
+  if (sedeId) qb.where('s.id = :sedeId', { sedeId });
+  qb.groupBy('s.id').addGroupBy('s.nombre').orderBy('s.nombre', 'ASC');
 
-  const params = [];
-  if (sedeId) {
-    params.push(sedeId);
-    query += ` WHERE s.id = $1`;
-  }
-
-  query += ` GROUP BY s.id, s.nombre ORDER BY s.nombre`;
-
-  const result = await pool.query(query, params);
-
-  return result.rows.map((row) => {
-    const enUso = parseInt(row.vehiculos_en_uso, 10);
-    const total = parseInt(row.total_flota, 10);
+  const rows = await qb.getRawMany();
+  return rows.map((r) => {
+    const u = parseInt(r.vehiculos_en_uso, 10);
+    const t = parseInt(r.total_flota, 10);
     return {
-      sede: row.sede,
-      vehiculosEnUso: enUso,
-      totalFlota: total,
-      porcentajeUso: total > 0 ? parseFloat(((enUso / total) * 100).toFixed(1)) : 0,
+      sede: r.sede, vehiculosEnUso: u, totalFlota: t,
+      porcentajeUso: t > 0 ? parseFloat(((u / t) * 100).toFixed(1)) : 0,
     };
   });
 }
 
-// reporte avanzado - post bajo demanda
-async function generarReporteAvanzado(fechaInicio, fechaFin, sedeId, metricasRequeridas) {
-  const reporte = {
-    periodo: { fechaInicio, fechaFin },
-    sedeId: sedeId || 'todas',
-    generadoEn: new Date().toISOString(),
-    metricas: {}
-  };
+// Reporte avanzado
+async function generarReporteAvanzado(fi, ff, sedeId, metricas) {
+  const rep = { periodo: { fechaInicio: fi, fechaFin: ff }, sedeId: sedeId || 'todas',
+    generadoEn: new Date().toISOString(), metricas: {} };
+  const proms = []; const keys = [];
 
-  // construir promesas dinamicamente segun las metricas solicitadas
-  const promesas = [];
-  const claves = [];
-
-  // metrica: clases_completadas
-  if (metricasRequeridas.includes('clases_completadas')) {
-    const params = [fechaInicio, fechaFin];
-    let query = `
-      SELECT COUNT(*) AS total
-      FROM reservas
-      WHERE estado = 'completada'
-        AND fecha_inicio >= $1::date
-        AND fecha_fin <= ($2::date + INTERVAL '1 day')
-    `;
-    if (sedeId) {
-      params.push(sedeId);
-      query += ` AND sede_id = $${params.length}`;
-    }
-
-    promesas.push(pool.query(query, params));
-    claves.push('clases_completadas');
+  if (metricas.includes('clases_completadas')) {
+    const q = AppDataSource.getRepository('Reserva').createQueryBuilder('r')
+      .select('COUNT(*)', 'total').where("r.estado = 'completada'")
+      .andWhere('r.fecha_inicio >= :fi::date', { fi })
+      .andWhere("r.fecha_fin <= (:ff::date + INTERVAL '1 day')", { ff });
+    if (sedeId) q.andWhere('r.sede_id = :sedeId', { sedeId });
+    proms.push(q.getRawOne()); keys.push('clases_completadas');
+  }
+  if (metricas.includes('uso_flota')) {
+    const q = AppDataSource.getRepository('Vehiculo').createQueryBuilder('v')
+      .select([
+        "COUNT(*) FILTER (WHERE v.estado IN ('en_sesion','mantenimiento')) AS vehiculos_ocupados",
+        "COUNT(*) FILTER (WHERE v.estado = 'disponible') AS vehiculos_disponibles",
+        'COUNT(*) AS total_flota',
+      ]);
+    if (sedeId) q.where('v.sede_id = :sedeId', { sedeId });
+    proms.push(q.getRawOne()); keys.push('uso_flota');
   }
 
-  // metrica: uso_flota
-  if (metricasRequeridas.includes('uso_flota')) {
-    const params = [];
-    let query = `
-      SELECT
-        COUNT(*) FILTER (WHERE estado IN ('en_sesion', 'mantenimiento')) AS vehiculos_ocupados,
-        COUNT(*) FILTER (WHERE estado = 'disponible') AS vehiculos_disponibles,
-        COUNT(*) AS total_flota
-      FROM vehiculos
-    `;
-    if (sedeId) {
-      params.push(sedeId);
-      query += ` WHERE sede_id = $1`;
-    }
-
-    promesas.push(pool.query(query, params));
-    claves.push('uso_flota');
-  }
-
-  // ejecutar todas las queries en paralelo
-  const resultados = await Promise.all(promesas);
-
-  // mapear resultados a sus claves correspondientes
-  resultados.forEach((result, index) => {
-    const clave = claves[index];
-
-    if (clave === 'clases_completadas') {
-      reporte.metricas.clases_completadas = {
-        total: parseInt(result.rows[0].total, 10),
-        descripcion: `Clases completadas entre ${fechaInicio} y ${fechaFin}`
+  const res = await Promise.all(proms);
+  res.forEach((r, i) => {
+    if (keys[i] === 'clases_completadas') {
+      rep.metricas.clases_completadas = {
+        total: parseInt(r.total, 10),
+        descripcion: `Clases completadas entre ${fi} y ${ff}`,
       };
     }
-
-    if (clave === 'uso_flota') {
-      const row = result.rows[0];
-      const ocupados = parseInt(row.vehiculos_ocupados, 10);
-      const disponibles = parseInt(row.vehiculos_disponibles, 10);
-      const total = parseInt(row.total_flota, 10);
-      reporte.metricas.uso_flota = {
-        vehiculosOcupados: ocupados,
-        vehiculosDisponibles: disponibles,
-        totalFlota: total,
-        porcentajeOcupacion: total > 0 ? parseFloat(((ocupados / total) * 100).toFixed(1)) : 0,
-        descripcion: 'Estado actual de la flota de vehículos'
+    if (keys[i] === 'uso_flota') {
+      const o = parseInt(r.vehiculos_ocupados, 10);
+      const d = parseInt(r.vehiculos_disponibles, 10);
+      const t = parseInt(r.total_flota, 10);
+      rep.metricas.uso_flota = {
+        vehiculosOcupados: o, vehiculosDisponibles: d, totalFlota: t,
+        porcentajeOcupacion: t > 0 ? parseFloat(((o / t) * 100).toFixed(1)) : 0,
+        descripcion: 'Estado actual de la flota de vehículos',
       };
     }
   });
-
-  return reporte;
+  return rep;
 }
 
-module.exports = { getKPIs, getClasesHoy, getGraficoSemana, getUsoFlota, generarReporteAvanzado };
+// =============== CRUD — Metas KPI ===============
+
+async function crearMeta(datos) {
+  const repo = AppDataSource.getRepository('MetaKPI');
+  const meta = repo.create({
+    metrica_nombre: datos.metrica_nombre,
+    valor_esperado: datos.valor_esperado,
+    mes_anio: datos.mes_anio,
+    sede_id: datos.sede_id || null,
+  });
+  return repo.save(meta);
+}
+
+async function obtenerMetas(filtros = {}) {
+  const qb = AppDataSource.getRepository('MetaKPI').createQueryBuilder('m')
+    .leftJoin('sedes', 's', 'm.sede_id = s.id')
+    .select([
+      'm.id AS id', 'm.metrica_nombre AS metrica_nombre',
+      'm.valor_esperado AS valor_esperado', 'm.mes_anio AS mes_anio',
+      'm.sede_id AS sede_id', 's.nombre AS sede_nombre',
+      'm.creado_en AS creado_en', 'm.actualizado_en AS actualizado_en',
+    ]);
+  if (filtros.mes_anio) qb.where('m.mes_anio = :ma', { ma: filtros.mes_anio });
+  if (filtros.sede_id) qb.andWhere('m.sede_id = :si', { si: filtros.sede_id });
+  qb.orderBy('m.creado_en', 'DESC');
+  return qb.getRawMany();
+}
+
+async function actualizarMeta(id, datos) {
+  const repo = AppDataSource.getRepository('MetaKPI');
+  const meta = await repo.findOneBy({ id: parseInt(id, 10) });
+  if (!meta) return null;
+  if (datos.metrica_nombre !== undefined) meta.metrica_nombre = datos.metrica_nombre;
+  if (datos.valor_esperado !== undefined) meta.valor_esperado = datos.valor_esperado;
+  if (datos.mes_anio !== undefined) meta.mes_anio = datos.mes_anio;
+  if (datos.sede_id !== undefined) meta.sede_id = datos.sede_id;
+  return repo.save(meta);
+}
+
+async function eliminarMeta(id) {
+  const repo = AppDataSource.getRepository('MetaKPI');
+  const meta = await repo.findOneBy({ id: parseInt(id, 10) });
+  if (!meta) return null;
+  await repo.remove(meta);
+  return meta;
+}
+
+module.exports = {
+  getKPIs, getClasesHoy, getGraficoSemana, getUsoFlota, generarReporteAvanzado,
+  crearMeta, obtenerMetas, actualizarMeta, eliminarMeta,
+};
