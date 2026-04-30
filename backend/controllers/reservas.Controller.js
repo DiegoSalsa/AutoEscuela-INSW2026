@@ -1,8 +1,25 @@
 const reservasService = require('../services/reservas.Service');
+const { emitirEventoReserva } = require('../services/socket');
+const { enviarConfirmacion } = require('../services/notificaciones.Service');
+const { AppDataSource } = require('../db/data-source');
 
 const crearReserva = async (req, res) => {
   try {
     const nuevaReserva = await reservasService.crearReservaTransaccional(req.body);
+
+    // Emitir evento en tiempo real via Socket.io
+    emitirEventoReserva('reserva:creada', nuevaReserva);
+
+    // Enviar email de confirmación de forma asíncrona (fire-and-forget)
+    const repoUsuario = AppDataSource.getRepository('Usuario');
+    repoUsuario.findOne({ where: { id: nuevaReserva.estudiante_id } })
+      .then((est) => {
+        if (est && est.email) {
+          enviarConfirmacion(nuevaReserva, est.email);
+        }
+      })
+      .catch(() => {});
+
     res.status(201).json({
       mensaje: 'Reserva creada exitosamente',
       data: nuevaReserva
@@ -10,26 +27,24 @@ const crearReserva = async (req, res) => {
   } catch (error) {
     console.error('Error en controlador de reservas:', error.message);
     const statusCode = error.status || 500;
-    res.status(statusCode).json({ error: error.message || 'Error interno del servidor' });
+    const response = { error: error.message || 'Error interno del servidor' };
+
+    res.status(statusCode).json(response);
   }
 };
 
-// obtener reservas para calendario
+// obtener reservas para calendario (usa req.validatedQuery del middleware Joi)
 const obtenerReservas = async (req, res) => {
   try {
-    let { fi, ff, s, i, v, e } = req.query;
-
-    // convertir fechas cortas a ISO
-    if (fi && !fi.includes('T')) fi = `${fi}T00:00:00.000Z`;
-    if (ff && !ff.includes('T')) ff = `${ff}T23:59:59.999Z`;
+    const { fi, ff, s, i, v, e } = req.validatedQuery || req.query;
 
     const reservas = await reservasService.obtenerReservas({
-      fechaInicio: fi,
-      fechaFin: ff,
+      fechaInicio: fi ? (fi instanceof Date ? fi.toISOString() : (fi.includes('T') ? fi : `${fi}T00:00:00.000Z`)) : undefined,
+      fechaFin: ff ? (ff instanceof Date ? ff.toISOString() : (ff.includes('T') ? ff : `${ff}T23:59:59.999Z`)) : undefined,
       sedeId: s,
       instructorId: i,
       vehiculoId: v,
-      estudianteId: e
+      estudianteId: e,
     });
     res.json(reservas);
   } catch (error) {
@@ -58,4 +73,25 @@ const obtenerHorariosOcupados = async (req, res) => {
   }
 };
 
-module.exports = { crearReserva, obtenerReservas, obtenerHorariosOcupados };
+// suspender reservas futuras de un vehículo (contingencia)
+const suspenderReservasVehiculo = async (req, res) => {
+  try {
+    const vehiculoId = parseInt(req.params.vehiculoId, 10);
+
+    if (!vehiculoId || vehiculoId <= 0) {
+      return res.status(400).json({ error: 'vehiculoId debe ser un número entero positivo' });
+    }
+
+    const afectadas = await reservasService.suspenderReservasVehiculo(vehiculoId);
+
+    res.json({
+      mensaje: `Se suspendieron ${afectadas} reserva(s) del vehículo #${vehiculoId}`,
+      afectadas,
+    });
+  } catch (error) {
+    console.error('Error en suspenderReservasVehiculo:', error.message);
+    res.status(500).json({ error: 'Error al suspender las reservas del vehículo' });
+  }
+};
+
+module.exports = { crearReserva, obtenerReservas, obtenerHorariosOcupados, suspenderReservasVehiculo };

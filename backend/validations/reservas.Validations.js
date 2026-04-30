@@ -1,4 +1,16 @@
 const Joi = require('joi');
+const { validarReglasNegocioFechas } = require('../helpers/fechas.helper');
+
+const validarHorarioAutoescuela = (fecha, helpers, nombreCampo) => {
+  const resultado = validarReglasNegocioFechas(fecha);
+
+  if (!resultado.valido) {
+    return helpers.error('any.custom', { customMessage: `${nombreCampo}: ${resultado.mensaje}` });
+  }
+
+  return fecha;
+};
+
 
 const crearReservaSchema = Joi.object({
   estudianteId: Joi.number().integer().positive().required()
@@ -30,19 +42,37 @@ const crearReservaSchema = Joi.object({
       'any.required': 'sedeId es obligatorio'
     }),
   fechaInicio: Joi.date().iso().greater('now').required()
+    .custom((value, helpers) => validarHorarioAutoescuela(value, helpers, 'fechaInicio'))
     .messages({
       'date.base': 'fechaInicio debe ser una fecha válida',
       'date.iso': 'fechaInicio debe usar formato ISO 8601',
       'date.greater': 'fechaInicio debe ser futura',
-      'any.required': 'fechaInicio es obligatorio'
+      'any.required': 'fechaInicio es obligatorio',
+      'any.custom': '{{#customMessage}}'
     }),
   fechaFin: Joi.date().iso().greater(Joi.ref('fechaInicio')).required()
+    .custom((value, helpers) => validarHorarioAutoescuela(value, helpers, 'fechaFin'))
     .messages({
       'date.base': 'fechaFin debe ser una fecha válida',
       'date.iso': 'fechaFin debe usar formato ISO 8601',
       'date.greater': 'fechaFin debe ser mayor que fechaInicio',
-      'any.required': 'fechaFin es obligatorio'
+      'any.required': 'fechaFin es obligatorio',
+      'any.custom': '{{#customMessage}}'
     })
+}).custom((value, helpers) => {
+  // Validación cruzada: la reserva no puede cruzar el bloque de colación (13:00 - 14:00)
+  const inicio = new Date(value.fechaInicio);
+  const fin = new Date(value.fechaFin);
+  const hInicio = inicio.getHours() + inicio.getMinutes() / 60;
+  const hFin = fin.getHours() + fin.getMinutes() / 60;
+
+  if (hInicio < 13 && hFin > 13) {
+    return helpers.error('any.custom', {
+      customMessage: 'La reserva no puede cruzar el bloque de colación (13:00–14:00)',
+    });
+  }
+
+  return value;
 });
 
 // validar creacion de reserva

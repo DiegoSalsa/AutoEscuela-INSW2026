@@ -1,182 +1,209 @@
-const pool = require('../db/db');
+const { AppDataSource } = require('../db/data-source');
+const { httpError } = require('../helpers/error.helper');
+const { aplicarFiltros } = require('../helpers/db.helper');
 
+// Tiempo mínimo de traslado entre sedes (en minutos)
+const TIEMPO_TRASLADO_MIN = parseInt(process.env.TIEMPO_TRASLADO_MIN, 10) || 60;
+
+
+// Valida la restricción de traslado vehicular (tiempo mínimo entre sedes)
+const validarTrasladoVehicular = async (repoReserva, vehiculoId, sedeId, fechaInicio, fechaFin) => {
+  // Buscar la reserva inmediatamente ANTERIOR del vehículo
+  const anterior = await repoReserva.createQueryBuilder('r')
+    .where('r.vehiculo_id = :vehiculoId', { vehiculoId })
+    .andWhere("r.estado IN ('confirmada', 'en_progreso', 'proxima')")
+    .andWhere('r.fecha_fin <= :fechaInicio', { fechaInicio })
+    .orderBy('r.fecha_fin', 'DESC')
+    .getOne();
+
+  if (anterior && anterior.sede_id !== sedeId) {
+    const finAnterior = new Date(anterior.fecha_fin).getTime();
+    const inicioNueva = new Date(fechaInicio).getTime();
+    const diferenciaMin = (inicioNueva - finAnterior) / (1000 * 60);
+
+    if (diferenciaMin < TIEMPO_TRASLADO_MIN) {
+      throw httpError(
+        `El vehículo tiene una reserva previa en otra sede que finaliza a las ${new Date(anterior.fecha_fin).toLocaleTimeString('es-CL')}. ` +
+        `Se requieren al menos ${TIEMPO_TRASLADO_MIN} minutos de traslado entre sedes.`,
+        409
+      );
+    }
+  }
+
+  // Buscar la reserva inmediatamente POSTERIOR del vehículo
+  const posterior = await repoReserva.createQueryBuilder('r')
+    .where('r.vehiculo_id = :vehiculoId', { vehiculoId })
+    .andWhere("r.estado IN ('confirmada', 'en_progreso', 'proxima')")
+    .andWhere('r.fecha_inicio >= :fechaFin', { fechaFin })
+    .orderBy('r.fecha_inicio', 'ASC')
+    .getOne();
+
+  if (posterior && posterior.sede_id !== sedeId) {
+    const finNueva = new Date(fechaFin).getTime();
+    const inicioPosterior = new Date(posterior.fecha_inicio).getTime();
+    const diferenciaMin = (inicioPosterior - finNueva) / (1000 * 60);
+
+    if (diferenciaMin < TIEMPO_TRASLADO_MIN) {
+      throw httpError(
+        `El vehículo tiene una reserva posterior en otra sede que inicia a las ${new Date(posterior.fecha_inicio).toLocaleTimeString('es-CL')}. ` +
+        `Se requieren al menos ${TIEMPO_TRASLADO_MIN} minutos de traslado entre sedes.`,
+        409
+      );
+    }
+  }
+};
+
+//Crea una reserva utilizando una transacción SERIALIZABLE para evitar condiciones de carrera.
 const crearReservaTransaccional = async (reservaData) => {
   const { estudianteId, instructorId, vehiculoId, sedeId, fechaInicio, fechaFin } = reservaData;
-  const client = await pool.connect();
 
   try {
-    await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');
+    return await AppDataSource.manager.transaction("SERIALIZABLE", async (manager) => {
+      const repoUsuario  = manager.getRepository('Usuario');
+      const repoVehiculo = manager.getRepository('Vehiculo');
+      const repoReserva  = manager.getRepository('Reserva');
 
-    // 1. validar estudiante
-    const estudianteCheck = await client.query(
-      `SELECT id FROM usuarios WHERE id = $1 AND rol = 'estudiante' AND estado = 'activo' AND sede_id = $2`,
-      [estudianteId, sedeId]
-    );
-    if (estudianteCheck.rows.length === 0) {
-      const error = new Error('El estudiante no existe, no está activo o no pertenece a esta sede.');
-      error.status = 404;
-      throw error;
-    }
+      //  validar estudiante, instructor y vehículo en paralelo
+      const [estudiante, instructor, vehiculo] = await Promise.all([
+        repoUsuario.findOne({
+          where: { id: estudianteId, rol: 'estudiante', estado: 'activo', sede_id: sedeId },
+        }),
+        repoUsuario.findOne({
+          where: { id: instructorId, rol: 'instructor', estado: 'activo', sede_id: sedeId },
+        }),
+        repoVehiculo.findOne({
+          where: { id: vehiculoId, sede_id: sedeId, estado: 'disponible' },
+        })
+      ]);
 
-    // 2. validar instructor (activo y misma sede)
-    const instructorCheck = await client.query(
-      `SELECT id FROM usuarios WHERE id = $1 AND rol = 'instructor' AND estado = 'activo' AND sede_id = $2`,
-      [instructorId, sedeId]
-    );
-    if (instructorCheck.rows.length === 0) {
-      const error = new Error('El instructor no existe, no está activo o no pertenece a esta sede.');
-      error.status = 404;
-      throw error;
-    }
+      if (!estudiante) throw httpError('El estudiante no existe, no está activo o no pertenece a esta sede.', 404);
+      if (!instructor) throw httpError('El instructor no existe, no está activo o no pertenece a esta sede.', 404);
+      if (!vehiculo)   throw httpError('El vehículo no existe, no está disponible o no pertenece a esta sede.', 404);
 
-    // 3. validar vehiculo (debe estar disponible y pertenecer a la sede)
-    const vehiculoCheck = await client.query(
-      `SELECT id FROM vehiculos WHERE id = $1 AND sede_id = $2 AND estado = 'disponible'`,
-      [vehiculoId, sedeId]
-    );
-    if (vehiculoCheck.rows.length === 0) {
-      const error = new Error('El vehículo no existe, no está disponible o no pertenece a esta sede.');
-      error.status = 404;
-      throw error;
-    }
+      // restricción de traslado vehicular (anti-teletransportación)
+      await validarTrasladoVehicular(repoReserva, vehiculoId, sedeId, fechaInicio, fechaFin);
 
-    // 4. verificar conflictos con OVERLAPS
-    const conflictQuery = `
-      SELECT id FROM reservas
-      WHERE estado IN ('confirmada', 'en_progreso', 'proxima')
-        AND (
-          instructor_id = $1
-          OR vehiculo_id = $2
-          OR estudiante_id = $5
+      // verificar conflictos de horario con OVERLAPS
+      const conflicto = await repoReserva.createQueryBuilder('r')
+        .where("r.estado IN ('confirmada', 'en_progreso', 'proxima')")
+        .andWhere(
+          '(r.instructor_id = :instructorId OR r.vehiculo_id = :vehiculoId OR r.estudiante_id = :estudianteId)',
+          { instructorId, vehiculoId, estudianteId }
         )
-        AND (fecha_inicio, fecha_fin) OVERLAPS ($3::timestamp, $4::timestamp)
-    `;
-    const conflictParams = [instructorId, vehiculoId, fechaInicio, fechaFin, estudianteId];
-    const conflictResult = await client.query(conflictQuery, conflictParams);
+        .andWhere(
+          '(r.fecha_inicio, r.fecha_fin) OVERLAPS (:fechaInicio::timestamp, (:fechaFin::timestamp + INTERVAL \'15 minutes\'))',
+          { fechaInicio, fechaFin }
+        )
+        .getOne();
 
-    if (conflictResult.rows.length > 0) {
-      const error = new Error('Conflicto de horario: el instructor, vehículo o estudiante ya tiene una reserva en ese lapso.');
-      error.status = 409;
-      throw error;
-    }
+      if (conflicto) {
+        throw httpError(
+          'Conflicto de horario: el instructor, vehículo o estudiante ya tiene una reserva en ese lapso.',
+          409
+        );
+      }
 
-    // 5. insertar reserva
-    const insertQuery = `
-      INSERT INTO reservas (estudiante_id, instructor_id, vehiculo_id, sede_id, fecha_inicio, fecha_fin, estado)
-      VALUES ($1, $2, $3, $4, $5, $6, 'confirmada')
-      RETURNING *
-    `;
-    const result = await client.query(insertQuery, [estudianteId, instructorId, vehiculoId, sedeId, fechaInicio, fechaFin]);
-
-    await client.query('COMMIT');
-    return result.rows[0];
-
+      // 5. insertar reserva
+      return repoReserva.save(
+        repoReserva.create({
+          estudiante_id: estudianteId,
+          instructor_id: instructorId,
+          vehiculo_id:   vehiculoId,
+          sede_id:       sedeId,
+          fecha_inicio:  fechaInicio,
+          fecha_fin:     fechaFin,
+          estado:        'confirmada',
+        })
+      );
+    });
   } catch (error) {
-    await client.query('ROLLBACK');
-    if (error.code === '40001') {
-      const concError = new Error('Alta concurrencia: El recurso fue tomado por otra operación. Intenta de nuevo.');
-      concError.status = 409;
-      throw concError;
+    // Error de serialización de PostgreSQL (condición de carrera detectada)
+    if (error.code === '40001' || error.driverError?.code === '40001') {
+      throw httpError('Lo sentimos, alguien acaba de tomar este cupo. Por favor elige otro horario en el calendario', 409);
     }
     throw error;
-  } finally {
-    client.release();
   }
 };
 
-// obtener reservas con filtros (para el calendario)
+// Obtiene reservas aplicando filtros dinámicos.
 const obtenerReservas = async (filtros) => {
-  const { fechaInicio, fechaFin, sedeId, instructorId, vehiculoId, estudianteId } = filtros;
-  let query = `
-    SELECT
-      r.id,
-      r.fecha_inicio,
-      r.fecha_fin,
-      r.estado,
-      r.sede_id,
-      s.nombre AS sede_nombre,
-      e.id AS estudiante_id,
-      e.nombre AS estudiante_nombre,
-      i.id AS instructor_id,
-      i.nombre AS instructor_nombre,
-      v.id AS vehiculo_id,
-      v.patente,
-      v.modelo
-    FROM reservas r
-    JOIN sedes s ON r.sede_id = s.id
-    JOIN usuarios e ON r.estudiante_id = e.id
-    JOIN usuarios i ON r.instructor_id = i.id
-    JOIN vehiculos v ON r.vehiculo_id = v.id
-    WHERE 1=1
-  `;
-  const params = [];
-  let idx = 1;
+  const qb = AppDataSource.getRepository('Reserva').createQueryBuilder('r')
+    .select([
+      'r.id          AS id',
+      'r.fecha_inicio AS fecha_inicio',
+      'r.fecha_fin    AS fecha_fin',
+      'r.estado       AS estado',
+      'r.sede_id      AS sede_id',
+      's.nombre       AS sede_nombre',
+      'e.id           AS estudiante_id',
+      'e.nombre       AS estudiante_nombre',
+      'i.id           AS instructor_id',
+      'i.nombre       AS instructor_nombre',
+      'v.id           AS vehiculo_id',
+      'v.patente      AS patente',
+      'v.modelo       AS modelo',
+    ])
+    .innerJoin('sedes',     's', 'r.sede_id        = s.id')
+    .innerJoin('usuarios',  'e', 'r.estudiante_id  = e.id')
+    .innerJoin('usuarios',  'i', 'r.instructor_id  = i.id')
+    .innerJoin('vehiculos', 'v', 'r.vehiculo_id    = v.id');
 
-  if (fechaInicio) {
-    query += ` AND r.fecha_inicio >= $${idx++}`;
-    params.push(fechaInicio);
-  }
-  if (fechaFin) {
-    query += ` AND r.fecha_fin <= $${idx++}`;
-    params.push(fechaFin);
-  }
-  if (sedeId) {
-    query += ` AND r.sede_id = $${idx++}`;
-    params.push(sedeId);
-  }
-  if (instructorId) {
-    query += ` AND r.instructor_id = $${idx++}`;
-    params.push(instructorId);
-  }
-  if (vehiculoId) {
-    query += ` AND r.vehiculo_id = $${idx++}`;
-    params.push(vehiculoId);
-  }
-  if (estudianteId) {
-    query += ` AND r.estudiante_id = $${idx++}`;
-    params.push(estudianteId);
-  }
+  // filtros de rango temporal
+  if (filtros.fechaInicio) qb.andWhere('r.fecha_inicio >= :fechaInicio', { fechaInicio: filtros.fechaInicio });
+  if (filtros.fechaFin)    qb.andWhere('r.fecha_fin <= :fechaFin',       { fechaFin: filtros.fechaFin });
 
-  query += ` ORDER BY r.fecha_inicio ASC`;
+  // filtros de entidad (reutilizables)
+  aplicarFiltros(qb, filtros, {
+    sedeId:       'r.sede_id',
+    instructorId: 'r.instructor_id',
+    vehiculoId:   'r.vehiculo_id',
+    estudianteId: 'r.estudiante_id',
+  });
 
-  const result = await pool.query(query, params);
-  return result.rows;
+  return qb.orderBy('r.fecha_inicio', 'ASC').getRawMany();
 };
 
-// obtener horarios ocupados
+//Obtiene horarios actualmente ocupados.
 const obtenerHorariosOcupados = async (filtros) => {
-  const { fechaInicio, fechaFin, sedeId, instructorId, vehiculoId } = filtros;
-  let query = `
-    SELECT fecha_inicio, fecha_fin, instructor_id, vehiculo_id, estudiante_id
-    FROM reservas
-    WHERE estado IN ('confirmada', 'en_progreso', 'proxima')
-  `;
-  const params = [];
-  let idx = 1;
+  const qb = AppDataSource.getRepository('Reserva').createQueryBuilder('r')
+    .select([
+      'r.fecha_inicio   AS fecha_inicio',
+      'r.fecha_fin      AS fecha_fin',
+      'r.instructor_id  AS instructor_id',
+      'r.vehiculo_id    AS vehiculo_id',
+      'r.estudiante_id  AS estudiante_id',
+    ])
+    .where("r.estado IN ('confirmada', 'en_progreso', 'proxima')");
 
-  if (fechaInicio) {
-    query += ` AND fecha_inicio >= $${idx++}`;
-    params.push(fechaInicio);
-  }
-  if (fechaFin) {
-    query += ` AND fecha_fin <= $${idx++}`;
-    params.push(fechaFin);
-  }
-  if (sedeId) {
-    query += ` AND sede_id = $${idx++}`;
-    params.push(sedeId);
-  }
-  if (instructorId) {
-    query += ` AND instructor_id = $${idx++}`;
-    params.push(instructorId);
-  }
-  if (vehiculoId) {
-    query += ` AND vehiculo_id = $${idx++}`;
-    params.push(vehiculoId);
-  }
+  // filtros de rango temporal
+  if (filtros.fechaInicio) qb.andWhere('r.fecha_inicio >= :fechaInicio', { fechaInicio: filtros.fechaInicio });
+  if (filtros.fechaFin)    qb.andWhere('r.fecha_fin <= :fechaFin',       { fechaFin: filtros.fechaFin });
 
-  const result = await pool.query(query, params);
-  return result.rows;
+  // filtros de entidad (reutilizables)
+  aplicarFiltros(qb, filtros, {
+    sedeId:       'r.sede_id',
+    instructorId: 'r.instructor_id',
+    vehiculoId:   'r.vehiculo_id',
+  });
+
+  return qb.getRawMany();
 };
 
-module.exports = { crearReservaTransaccional, obtenerReservas, obtenerHorariosOcupados };
+// Suspende (cambia a estado pendiente) reservas futuras de un vehículo específico.
+const suspenderReservasVehiculo = async (vehiculoId, manager) => {
+  const repo = manager
+    ? manager.getRepository('Reserva')
+    : AppDataSource.getRepository('Reserva');
+
+  const resultado = await repo.createQueryBuilder()
+    .update()
+    .set({ estado: 'pendiente' })
+    .where('vehiculo_id = :vehiculoId', { vehiculoId })
+    .andWhere("estado = 'confirmada'")
+    .andWhere('fecha_inicio > NOW()')
+    .execute();
+
+  return resultado.affected || 0;
+};
+
+module.exports = { crearReservaTransaccional, obtenerReservas, obtenerHorariosOcupados, suspenderReservasVehiculo };
