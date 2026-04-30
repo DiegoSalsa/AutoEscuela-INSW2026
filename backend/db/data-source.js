@@ -21,6 +21,7 @@ const Usuario = new EntitySchema({
   columns: {
     id:      { primary: true, type: 'int', generated: true },
     nombre:  { type: 'varchar' },
+    email:   { type: 'varchar', nullable: true },
     rol:     { type: 'varchar' },
     estado:  { type: 'varchar', default: 'activo' },
     sede_id: { type: 'int' },
@@ -67,6 +68,7 @@ const Reserva = new EntitySchema({
     instructor_id:   { type: 'int' },
     vehiculo_id:     { type: 'int' },
     sede_id:         { type: 'int' },
+    created_at:      { type: 'timestamp', createDate: true },
   },
   relations: {
     estudiante: {

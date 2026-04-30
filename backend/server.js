@@ -1,11 +1,21 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const { AppDataSource } = require('./db/data-source');
 const apiRoutes = require('./routes/index.Routes');
+const { initSocket } = require('./services/socket');
+const { initMailer } = require('./services/notificaciones.Service');
+const { iniciarScheduler } = require('./jobs/scheduler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Crear servidor HTTP (requerido por Socket.io)
+const server = http.createServer(app);
+
+// Inicializar Socket.io
+initSocket(server);
 
 // middlewares globales
 app.use(cors());
@@ -20,10 +30,18 @@ app.get('/', (_req, res) => {
 
 // inicializar TypeORM y luego levantar el servidor
 AppDataSource.initialize()
-  .then(() => {
+  .then(async () => {
     console.log('✅ TypeORM conectado a PostgreSQL');
-    app.listen(PORT, () => {
+
+    // Inicializar Nodemailer (async por si usa Ethereal)
+    await initMailer();
+
+    // Iniciar tareas programadas (cron jobs)
+    iniciarScheduler();
+
+    server.listen(PORT, () => {
       console.log(`🚗 Servidor corriendo en http://localhost:${PORT}`);
+      console.log(`🔌 WebSocket escuchando en ws://localhost:${PORT}`);
     });
   })
   .catch((err) => {
