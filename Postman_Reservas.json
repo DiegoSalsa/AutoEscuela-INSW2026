@@ -1,0 +1,139 @@
+{
+  "info": {
+    "name": "AutoDrive Academy - Reservas",
+    "description": "Colección de pruebas para el módulo de Reservas de la Autoescuela",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Obtener Horarios Ocupados",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/api/reservas/ocupados?si=1&fi=2026-05-19&ff=2026-05-19",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "reservas",
+            "ocupados"
+          ],
+          "query": [
+            {
+              "key": "si",
+              "value": "1",
+              "description": "Sede ID"
+            },
+            {
+              "key": "fi",
+              "value": "2026-05-19",
+              "description": "Fecha Inicio"
+            },
+            {
+              "key": "ff",
+              "value": "2026-05-19",
+              "description": "Fecha Fin"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "2. Crear Reserva (Exitoso)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{$guid}}",
+            "description": "Genera un UUID automático en Postman",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estudianteId\": 51,\n  \"instructorId\": 36,\n  \"vehiculoId\": 1,\n  \"sedeId\": 1,\n  \"fechaInicio\": \"2026-05-19T08:00:00\",\n  \"fechaFin\": \"2026-05-19T08:45:00\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/reservas",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "reservas"
+          ]
+        }
+      }
+    },
+    {
+      "name": "3. Crear Reserva (Error - Choque Horario)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Idempotency-Key",
+            "value": "{{$guid}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estudianteId\": 51,\n  \"instructorId\": 36,\n  \"vehiculoId\": 1,\n  \"sedeId\": 1,\n  \"fechaInicio\": \"2026-05-19T08:00:00\",\n  \"fechaFin\": \"2026-05-19T08:45:00\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/reservas",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "reservas"
+          ]
+        },
+        "description": "Lanza esta petición justo después de la petición 2 para demostrar que el sistema bloquea los choques de horario por el buffer transaccional."
+      }
+    },
+    {
+      "name": "4. Contingencia - Suspender Vehículo",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/api/reservas/vehiculo/1/suspender",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "reservas",
+            "vehiculo",
+            "1",
+            "suspender"
+          ]
+        },
+        "description": "Pasa todas las reservas futuras confirmadas del vehículo 1 a estado 'pendiente' por emergencia."
+      }
+    }
+  ]
+}

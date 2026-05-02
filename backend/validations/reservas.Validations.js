@@ -41,6 +41,13 @@ const crearReservaSchema = Joi.object({
       'number.positive': 'sedeId debe ser positivo',
       'any.required': 'sedeId es obligatorio'
     }),
+  tipoClaseId: Joi.number().integer().positive().required()
+    .messages({
+      'number.base': 'tipoClaseId debe ser un número',
+      'number.integer': 'tipoClaseId debe ser un entero',
+      'number.positive': 'tipoClaseId debe ser positivo',
+      'any.required': 'tipoClaseId es obligatorio'
+    }),
   fechaInicio: Joi.date().iso().greater('now').required()
     .custom((value, helpers) => validarHorarioAutoescuela(value, helpers, 'fechaInicio'))
     .messages({

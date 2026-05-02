@@ -12,10 +12,18 @@ const crearReserva = async (req, res) => {
 
     // Enviar email de confirmación de forma asíncrona (fire-and-forget)
     const repoUsuario = AppDataSource.getRepository('Usuario');
-    repoUsuario.findOne({ where: { id: nuevaReserva.estudiante_id } })
-      .then((est) => {
+    const repoSede = AppDataSource.getRepository('Sede');
+
+    Promise.all([
+      repoUsuario.findOne({ where: { id: nuevaReserva.estudiante_id } }),
+      repoSede.findOne({ where: { id: nuevaReserva.sede_id } }),
+      nuevaReserva.tipo_clase_id
+        ? AppDataSource.getRepository('TipoClase').findOne({ where: { id: nuevaReserva.tipo_clase_id } })
+        : Promise.resolve(null),
+    ])
+      .then(([est, sede, tipoClase]) => {
         if (est && est.email) {
-          enviarConfirmacion(nuevaReserva, est.email);
+          enviarConfirmacion(nuevaReserva, est.email, sede, tipoClase);
         }
       })
       .catch(() => {});
@@ -94,4 +102,74 @@ const suspenderReservasVehiculo = async (req, res) => {
   }
 };
 
-module.exports = { crearReserva, obtenerReservas, obtenerHorariosOcupados, suspenderReservasVehiculo };
+// obtener todos los tipos de clase disponibles
+const obtenerTiposClase = async (req, res) => {
+  try { 
+    const repo = AppDataSource.getRepository('TipoClase');
+    const tipos = await repo.find({ order: { id: 'ASC' } });
+    res.json(tipos);
+  } catch (error) {
+    console.error('Error en obtenerTiposClase:', error.message);
+    res.status(500).json({ error: 'Error al obtener los tipos de clase' });
+  }
+};
+
+// ── Endpoints de recursos para el selector de reservas ──
+
+const obtenerSedes = async (_req, res) => {
+  try {
+    const repo = AppDataSource.getRepository('Sede');
+    const sedes = await repo.find({ order: { id: 'ASC' } });
+    res.json(sedes);
+  } catch (error) {
+    console.error('Error en obtenerSedes:', error.message);
+    res.status(500).json({ error: 'Error al obtener sedes' });
+  }
+};
+
+const obtenerEstudiantes = async (req, res) => {
+  try {
+    const { sedeId } = req.query;
+    const where = { rol: 'estudiante', estado: 'activo' };
+    if (sedeId) where.sede_id = parseInt(sedeId, 10);
+    const repo = AppDataSource.getRepository('Usuario');
+    const estudiantes = await repo.find({ where, order: { nombre: 'ASC' } });
+    res.json(estudiantes);
+  } catch (error) {
+    console.error('Error en obtenerEstudiantes:', error.message);
+    res.status(500).json({ error: 'Error al obtener estudiantes' });
+  }
+};
+
+const obtenerInstructores = async (req, res) => {
+  try {
+    const { sedeId } = req.query;
+    const where = { rol: 'instructor', estado: 'activo' };
+    if (sedeId) where.sede_id = parseInt(sedeId, 10);
+    const repo = AppDataSource.getRepository('Usuario');
+    const instructores = await repo.find({ where, order: { nombre: 'ASC' } });
+    res.json(instructores);
+  } catch (error) {
+    console.error('Error en obtenerInstructores:', error.message);
+    res.status(500).json({ error: 'Error al obtener instructores' });
+  }
+};
+
+const obtenerVehiculos = async (req, res) => {
+  try {
+    const { sedeId } = req.query;
+    const where = { estado: 'disponible' };
+    if (sedeId) where.sede_id = parseInt(sedeId, 10);
+    const repo = AppDataSource.getRepository('Vehiculo');
+    const vehiculos = await repo.find({ where, order: { id: 'ASC' } });
+    res.json(vehiculos);
+  } catch (error) {
+    console.error('Error en obtenerVehiculos:', error.message);
+    res.status(500).json({ error: 'Error al obtener vehículos' });
+  }
+};
+
+module.exports = {
+  crearReserva, obtenerReservas, obtenerHorariosOcupados, suspenderReservasVehiculo,
+  obtenerTiposClase, obtenerSedes, obtenerEstudiantes, obtenerInstructores, obtenerVehiculos,
+};

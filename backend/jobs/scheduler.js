@@ -7,7 +7,7 @@ const { enviarRecordatorio } = require('../services/notificaciones.Service');
 const iniciarScheduler = () => {
   console.log('Scheduler iniciado');
 
-  // Cada 5 minutos: expirar reservas pendientes sin confirmar
+  // Cada 5 minutos: expirar reservas pendientes cuya fecha de clase ya pasó
   cron.schedule('*/5 * * * *', async () => {
     try {
       const repo = AppDataSource.getRepository('Reserva');
@@ -15,7 +15,7 @@ const iniciarScheduler = () => {
         .update('Reserva')
         .set({ estado: 'expirada' })
         .where("estado = 'pendiente'")
-        .andWhere("created_at <= NOW() - INTERVAL '15 minutes'")
+        .andWhere("fecha_inicio <= NOW()")
         .returning('*')
         .execute();
 
@@ -79,14 +79,21 @@ const iniciarScheduler = () => {
       const repo = AppDataSource.getRepository('Reserva');
       const reservas = await repo.createQueryBuilder('r')
         .innerJoin('usuarios', 'e', 'r.estudiante_id = e.id')
-        .select(['r.*', 'e.email AS estudiante_email'])
+        .innerJoin('sedes', 's', 'r.sede_id = s.id')
+        .select([
+          'r.*',
+          'e.email AS estudiante_email',
+          's.nombre AS sede_nombre',
+          's.direccion AS sede_direccion',
+        ])
         .where("r.estado = 'confirmada'")
         .andWhere("r.fecha_inicio BETWEEN NOW() AND NOW() + INTERVAL '1 hour'")
         .getRawMany();
 
       for (const r of reservas) {
         if (r.estudiante_email) {
-          enviarRecordatorio(r, r.estudiante_email);
+          const sede = { nombre: r.sede_nombre, direccion: r.sede_direccion };
+          enviarRecordatorio(r, r.estudiante_email, sede);
         }
       }
       if (reservas.length > 0) {

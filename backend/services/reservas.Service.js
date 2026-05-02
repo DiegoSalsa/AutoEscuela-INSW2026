@@ -55,16 +55,17 @@ const validarTrasladoVehicular = async (repoReserva, vehiculoId, sedeId, fechaIn
 
 //Crea una reserva utilizando una transacción SERIALIZABLE para evitar condiciones de carrera.
 const crearReservaTransaccional = async (reservaData) => {
-  const { estudianteId, instructorId, vehiculoId, sedeId, fechaInicio, fechaFin } = reservaData;
+  const { estudianteId, instructorId, vehiculoId, sedeId, tipoClaseId, fechaInicio, fechaFin } = reservaData;
 
   try {
     return await AppDataSource.manager.transaction("SERIALIZABLE", async (manager) => {
       const repoUsuario  = manager.getRepository('Usuario');
       const repoVehiculo = manager.getRepository('Vehiculo');
       const repoReserva  = manager.getRepository('Reserva');
+      const repoTipoClase = manager.getRepository('TipoClase');
 
       //  validar estudiante, instructor y vehículo en paralelo
-      const [estudiante, instructor, vehiculo] = await Promise.all([
+      const [estudiante, instructor, vehiculo, tipoClase] = await Promise.all([
         repoUsuario.findOne({
           where: { id: estudianteId, rol: 'estudiante', estado: 'activo', sede_id: sedeId },
         }),
@@ -73,12 +74,16 @@ const crearReservaTransaccional = async (reservaData) => {
         }),
         repoVehiculo.findOne({
           where: { id: vehiculoId, sede_id: sedeId, estado: 'disponible' },
+        }),
+        repoTipoClase.findOne({
+          where: { id: tipoClaseId },
         })
       ]);
 
       if (!estudiante) throw httpError('El estudiante no existe, no está activo o no pertenece a esta sede.', 404);
       if (!instructor) throw httpError('El instructor no existe, no está activo o no pertenece a esta sede.', 404);
       if (!vehiculo)   throw httpError('El vehículo no existe, no está disponible o no pertenece a esta sede.', 404);
+      if (!tipoClase)  throw httpError('El tipo de clase no existe.', 404);
 
       // restricción de traslado vehicular (anti-teletransportación)
       await validarTrasladoVehicular(repoReserva, vehiculoId, sedeId, fechaInicio, fechaFin);
@@ -110,6 +115,7 @@ const crearReservaTransaccional = async (reservaData) => {
           instructor_id: instructorId,
           vehiculo_id:   vehiculoId,
           sede_id:       sedeId,
+          tipo_clase_id: tipoClaseId,
           fecha_inicio:  fechaInicio,
           fecha_fin:     fechaFin,
           estado:        'confirmada',
@@ -129,24 +135,29 @@ const crearReservaTransaccional = async (reservaData) => {
 const obtenerReservas = async (filtros) => {
   const qb = AppDataSource.getRepository('Reserva').createQueryBuilder('r')
     .select([
-      'r.id          AS id',
-      'r.fecha_inicio AS fecha_inicio',
-      'r.fecha_fin    AS fecha_fin',
-      'r.estado       AS estado',
-      'r.sede_id      AS sede_id',
-      's.nombre       AS sede_nombre',
-      'e.id           AS estudiante_id',
-      'e.nombre       AS estudiante_nombre',
-      'i.id           AS instructor_id',
-      'i.nombre       AS instructor_nombre',
-      'v.id           AS vehiculo_id',
-      'v.patente      AS patente',
-      'v.modelo       AS modelo',
+      'r.id              AS id',
+      'r.fecha_inicio    AS fecha_inicio',
+      'r.fecha_fin       AS fecha_fin',
+      'r.estado          AS estado',
+      'r.sede_id         AS sede_id',
+      'r.tipo_clase_id   AS tipo_clase_id',
+      's.nombre          AS sede_nombre',
+      's.direccion        AS sede_direccion',
+      'e.id              AS estudiante_id',
+      'e.nombre          AS estudiante_nombre',
+      'i.id              AS instructor_id',
+      'i.nombre          AS instructor_nombre',
+      'v.id              AS vehiculo_id',
+      'v.patente         AS patente',
+      'v.modelo          AS modelo',
+      'tc.nombre         AS tipo_clase_nombre',
+      'tc.color          AS tipo_clase_color',
     ])
-    .innerJoin('sedes',     's', 'r.sede_id        = s.id')
-    .innerJoin('usuarios',  'e', 'r.estudiante_id  = e.id')
-    .innerJoin('usuarios',  'i', 'r.instructor_id  = i.id')
-    .innerJoin('vehiculos', 'v', 'r.vehiculo_id    = v.id');
+    .innerJoin('sedes',       's',  'r.sede_id        = s.id')
+    .innerJoin('usuarios',    'e',  'r.estudiante_id  = e.id')
+    .innerJoin('usuarios',    'i',  'r.instructor_id  = i.id')
+    .innerJoin('vehiculos',   'v',  'r.vehiculo_id    = v.id')
+    .leftJoin('tipos_clase', 'tc', 'r.tipo_clase_id  = tc.id');
 
   // filtros de rango temporal
   if (filtros.fechaInicio) qb.andWhere('r.fecha_inicio >= :fechaInicio', { fechaInicio: filtros.fechaInicio });

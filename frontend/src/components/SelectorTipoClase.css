@@ -1,0 +1,92 @@
+.tipo-clase-section {
+  margin-bottom: 1.5rem;
+}
+
+.tipo-clase-section h3 {
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  color: var(--text-color);
+}
+
+.tipo-clase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.tipo-clase-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem 1.25rem;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--card-bg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.tipo-clase-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  border-radius: 4px 0 0 4px;
+  background-color: var(--tc-color, var(--primary-color));
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
+}
+
+.tipo-clase-card:hover {
+  border-color: var(--tc-color, var(--primary-color));
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.tipo-clase-card:hover::before {
+  opacity: 1;
+}
+
+.tipo-clase-card.seleccionado {
+  border-color: var(--tc-color, var(--primary-color));
+  background: color-mix(in srgb, var(--tc-color, var(--primary-color)) 8%, var(--card-bg));
+}
+
+.tipo-clase-card.seleccionado::before {
+  opacity: 1;
+}
+
+.tipo-clase-nombre {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-color);
+}
+
+.tipo-clase-desc {
+  font-size: 0.78rem;
+  color: var(--secondary-color);
+  line-height: 1.4;
+}
+
+.tipo-clase-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--secondary-color);
+}
+
+.tipo-clase-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.7rem;
+  color: white;
+  background-color: var(--tc-color, var(--primary-color));
+}

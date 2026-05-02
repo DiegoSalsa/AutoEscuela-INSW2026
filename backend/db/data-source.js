@@ -9,8 +9,9 @@ const Sede = new EntitySchema({
   name: 'Sede',
   tableName: 'sedes',
   columns: {
-    id:     { primary: true, type: 'int', generated: true },
-    nombre: { type: 'varchar' },
+    id:        { primary: true, type: 'int', generated: true },
+    nombre:    { type: 'varchar' },
+    direccion: { type: 'varchar', nullable: true },
   },
 });
 
@@ -55,6 +56,19 @@ const Vehiculo = new EntitySchema({
   },
 });
 
+// ---------- Entidad: TipoClase ----------
+const TipoClase = new EntitySchema({
+  name: 'TipoClase',
+  tableName: 'tipos_clase',
+  columns: {
+    id:           { primary: true, type: 'int', generated: true },
+    nombre:       { type: 'varchar', length: 100 },
+    descripcion:  { type: 'varchar', length: 255, nullable: true },
+    duracion_min: { type: 'int', default: 60 },
+    color:        { type: 'varchar', length: 7, default: "'#2563eb'" },
+  },
+});
+
 // ---------- Entidad: Reserva ----------
 const Reserva = new EntitySchema({
   name: 'Reserva',
@@ -68,6 +82,7 @@ const Reserva = new EntitySchema({
     instructor_id:   { type: 'int' },
     vehiculo_id:     { type: 'int' },
     sede_id:         { type: 'int' },
+    tipo_clase_id:   { type: 'int', nullable: true },
     created_at:      { type: 'timestamp', createDate: true },
   },
   relations: {
@@ -90,6 +105,12 @@ const Reserva = new EntitySchema({
       type: 'many-to-one',
       target: 'Sede',
       joinColumn: { name: 'sede_id' },
+    },
+    tipoClase: {
+      type: 'many-to-one',
+      target: 'TipoClase',
+      joinColumn: { name: 'tipo_clase_id' },
+      nullable: true,
     },
   },
 });
@@ -150,7 +171,7 @@ const AppDataSource = new DataSource({
   // la tabla metas_kpi se crea con el script de migracion
   synchronize: false,
   logging: false,
-  entities: [Sede, Usuario, Vehiculo, Reserva, MetaKPI],
+  entities: [Sede, Usuario, Vehiculo, TipoClase, Reserva, MetaKPI],
 });
 
-module.exports = { AppDataSource, Sede, Usuario, Vehiculo, Reserva, MetaKPI };
+module.exports = { AppDataSource, Sede, Usuario, Vehiculo, TipoClase, Reserva, MetaKPI };
