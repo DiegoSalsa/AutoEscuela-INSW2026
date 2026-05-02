@@ -136,6 +136,42 @@ const MetaKPI = new EntitySchema({
   },
 });
 
+// ---------- Entidad: ResultadoExamen ----------
+const ResultadoExamen = new EntitySchema({
+  name: 'ResultadoExamen',
+  tableName: 'resultados_examen',
+  columns: {
+    id:             { primary: true, type: 'int', generated: true },
+    estudiante_id:  { type: 'int' },
+    aprobado:       { type: 'boolean' },
+    tipo_examen:    { type: 'varchar', length: 30, default: 'practico' },
+    fecha:          { type: 'date' },
+    sede_id:        { type: 'int' },
+  },
+  relations: {
+    estudiante: { type: 'many-to-one', target: 'Usuario', joinColumn: { name: 'estudiante_id' } },
+    sede:       { type: 'many-to-one', target: 'Sede', joinColumn: { name: 'sede_id' } },
+  },
+});
+
+// ---------- Entidad: Pago ----------
+const Pago = new EntitySchema({
+  name: 'Pago',
+  tableName: 'pagos',
+  columns: {
+    id:             { primary: true, type: 'int', generated: true },
+    estudiante_id:  { type: 'int' },
+    concepto:       { type: 'varchar', length: 80 },
+    monto:          { type: 'decimal', precision: 10, scale: 2 },
+    fecha:          { type: 'date' },
+    sede_id:        { type: 'int' },
+  },
+  relations: {
+    estudiante: { type: 'many-to-one', target: 'Usuario', joinColumn: { name: 'estudiante_id' } },
+    sede:       { type: 'many-to-one', target: 'Sede', joinColumn: { name: 'sede_id' } },
+  },
+});
+
 // ---------- DataSource ----------
 const AppDataSource = new DataSource({
   type: 'postgres',
@@ -144,11 +180,10 @@ const AppDataSource = new DataSource({
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'autoescuela',
-  // synchronize en false para no alterar tablas existentes
-  // la tabla metas_kpi se crea con el script de migracion
   synchronize: false,
   logging: false,
-  entities: [Sede, Usuario, Vehiculo, Reserva, MetaKPI],
+  entities: [Sede, Usuario, Vehiculo, Reserva, MetaKPI, ResultadoExamen, Pago],
 });
 
-module.exports = { AppDataSource, Sede, Usuario, Vehiculo, Reserva, MetaKPI };
+module.exports = { AppDataSource, Sede, Usuario, Vehiculo, Reserva, MetaKPI, ResultadoExamen, Pago };
+

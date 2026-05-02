@@ -21,12 +21,12 @@ app.get('/', (_req, res) => {
 // inicializar TypeORM y luego levantar el servidor
 AppDataSource.initialize()
   .then(() => {
-    console.log('✅ TypeORM conectado a PostgreSQL');
+    console.log('[OK] TypeORM conectado a PostgreSQL');
     app.listen(PORT, () => {
-      console.log(`🚗 Servidor corriendo en http://localhost:${PORT}`);
+      console.log(`[SERVER] Servidor corriendo en http://localhost:${PORT}`);
     });
   })
   .catch((err) => {
-    console.error('❌ Error al inicializar TypeORM:', err.message);
+    console.error('[ERROR] Error al inicializar TypeORM:', err.message);
     process.exit(1);
   });

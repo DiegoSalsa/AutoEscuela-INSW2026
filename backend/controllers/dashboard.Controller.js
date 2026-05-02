@@ -28,6 +28,31 @@ const getClasesHoy = async (req, res) => {
   }
 };
 
+// GET /api/dashboard/clases-proximas?sedeId=&dias=7
+const getClasesProximas = async (req, res) => {
+  try {
+    const sedeId = req.query.sedeId || null;
+    const dias = parseInt(req.query.dias, 10) || 7;
+    const data = await dashboardService.getClasesProximas(sedeId, dias);
+    res.json(data);
+  } catch (error) {
+    console.error('Error en getClasesProximas:', error.message);
+    res.status(500).json({ error: 'Error al obtener las clases próximas' });
+  }
+};
+
+// GET /api/dashboard/vehiculos?sedeId=
+const getVehiculos = async (req, res) => {
+  try {
+    const sedeId = req.query.sedeId || null;
+    const data = await dashboardService.getVehiculos(sedeId);
+    res.json(data);
+  } catch (error) {
+    console.error('Error en getVehiculos:', error.message);
+    res.status(500).json({ error: 'Error al obtener los vehículos' });
+  }
+};
+
 // GET /api/dashboard/grafico-semana?sedeId=
 const getGraficoSemana = async (req, res) => {
   try {
@@ -146,7 +171,60 @@ const eliminarMeta = async (req, res) => {
   }
 };
 
+// GET /api/dashboard/aprobados-reprobados?sedeId=&mes_anio=2026-05
+const getAprobadosReprobados = async (req, res) => {
+  try {
+    const sedeId = req.query.sedeId || null;
+    const mesAnio = req.query.mes_anio || null;
+    const data = await dashboardService.getAprobadosReprobados(sedeId, mesAnio);
+    res.json(data);
+  } catch (error) {
+    console.error('Error en getAprobadosReprobados:', error.message);
+    res.status(500).json({ error: 'Error al obtener aprobados/reprobados' });
+  }
+};
+
+// GET /api/dashboard/ocupacion-sede?sedeId=
+const getOcupacionSede = async (req, res) => {
+  try {
+    const sedeId = req.query.sedeId || null;
+    const data = await dashboardService.getOcupacionSede(sedeId);
+    res.json(data);
+  } catch (error) {
+    console.error('Error en getOcupacionSede:', error.message);
+    res.status(500).json({ error: 'Error al obtener ocupacion por sede' });
+  }
+};
+
+// GET /api/dashboard/ingresos?sedeId=&mes_anio=2026-05
+const getIngresos = async (req, res) => {
+  try {
+    const sedeId = req.query.sedeId || null;
+    const mesAnio = req.query.mes_anio || null;
+    const data = await dashboardService.getIngresos(sedeId, mesAnio);
+    res.json(data);
+  } catch (error) {
+    console.error('Error en getIngresos:', error.message);
+    res.status(500).json({ error: 'Error al obtener ingresos' });
+  }
+};
+
+// GET /api/dashboard/rendimiento-mes?sedeId=
+const getRendimientoMes = async (req, res) => {
+  try {
+    const sedeId = req.query.sedeId || null;
+    const data = await dashboardService.getRendimientoMes(sedeId);
+    res.json(data);
+  } catch (error) {
+    console.error('Error en getRendimientoMes:', error.message);
+    res.status(500).json({ error: 'Error al obtener rendimiento del mes' });
+  }
+};
+
 module.exports = {
-  getKPIs, getClasesHoy, getGraficoSemana, getUsoFlota, generarReporte,
+  getKPIs, getClasesHoy, getClasesProximas, getVehiculos,
+  getGraficoSemana, getUsoFlota, generarReporte,
+  getAprobadosReprobados, getOcupacionSede, getIngresos, getRendimientoMes,
   crearMeta, obtenerMetas, actualizarMeta, eliminarMeta,
 };
+
