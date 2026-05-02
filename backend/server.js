@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { AppDataSource } = require('./db/data-source');
 const apiRoutes = require('./routes/index.Routes');
 
 const app = express();
@@ -12,12 +13,20 @@ app.use(express.json());
 
 app.use('/api', apiRoutes);
 
-
 // health check
 app.get('/', (_req, res) => {
   res.json({ status: 'ok', message: 'AutoDrive Academy — API' });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚗 Servidor corriendo en http://localhost:${PORT}`);
-});
+// inicializar TypeORM y luego levantar el servidor
+AppDataSource.initialize()
+  .then(() => {
+    console.log('[OK] TypeORM conectado a PostgreSQL');
+    app.listen(PORT, () => {
+      console.log(`[SERVER] Servidor corriendo en http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('[ERROR] Error al inicializar TypeORM:', err.message);
+    process.exit(1);
+  });
