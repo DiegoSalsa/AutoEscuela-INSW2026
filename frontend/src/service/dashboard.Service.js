@@ -245,3 +245,15 @@ export const dashboardService = {
   },
 };
 
+export const obtenerInventarioFlota = async (sedeId = null) => {
+    try {
+        const parametroSede = sedeId ? `?sedeId=${sedeId}` : '';
+        const respuesta = await fetch(`/api/dashboard/vehiculos${parametroSede}`);
+        if (!respuesta.ok) throw new Error('Error al conectar con el servidor');
+        return await respuesta.json();
+    } catch (error) {
+        console.error("Error en obtenerInventarioFlota:", error);
+        return [];
+    }
+};
+

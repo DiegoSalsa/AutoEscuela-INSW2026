@@ -97,12 +97,22 @@ async function getVehiculos(sedeId) {
     .select([
       'v.id AS id', 'v.patente AS patente', 'v.modelo AS modelo',
       'v.estado AS estado', 'v.sede_id AS sede_id', 's.nombre AS sede_nombre',
+      'v.kilometraje_actual AS kilometraje_actual', 
+      'v.km_ultimo_aceite AS km_ultimo_aceite',
+      'v.km_ultimos_frenos AS km_ultimos_frenos',
+      'v.fecha_revision_tecnica AS fecha_revision_tecnica'
     ])
     .innerJoin('sedes', 's', 'v.sede_id = s.id');
 
   if (sedeId) qb.where('v.sede_id = :sedeId', { sedeId });
   qb.orderBy('s.nombre', 'ASC').addOrderBy('v.patente', 'ASC');
-  return qb.getRawMany();
+  
+  const rows = await qb.getRawMany();
+  //Mapeamos los resultados para inyectar las alertas 
+  return rows.map(auto => ({
+    ...auto,
+    alertas: obtenerAlertasVehiculo(auto)
+  }));
 }
 
 // Grafico semanal — con dias fantasma
@@ -453,9 +463,66 @@ async function eliminarMeta(id) {
   return meta;
 }
 
+//motor de reglas para alertas
+ const obtenerAlertasVehiculo = (vehiculo) => {
+    const UMBRAL_ACEITE = 10000; 
+    const UMBRAL_FRENOS = 20000; 
+    const alertas = [];
+
+    //alerta de aceite
+    if (vehiculo.kilometraje_actual - vehiculo.km_ultimo_aceite >= UMBRAL_ACEITE) {
+        alertas.push({ item: "Aceite", nivel: "Critico", mensaje: "Requiere cambio inmediato" });
+    }
+
+    //alerta de frenos
+    if (vehiculo.kilometraje_actual - vehiculo.km_ultimos_frenos >= UMBRAL_FRENOS) {
+        alertas.push({ item: "Frenos", nivel: "Advertencia", mensaje: "Revision preventiva necesaria" });
+    }
+
+    //alerta Revision tecnica
+    if (vehiculo.fecha_revision_tecnica) {
+        const fechaActual = new Date();
+        const fechaRevision = new Date(vehiculo.fecha_revision_tecnica);
+        const diferenciaDias = (fechaRevision - fechaActual) / (1000 * 60 * 60 * 24);
+
+        if (diferenciaDias <= 30) {
+            alertas.push({ 
+                item: "Revision Tecnica", 
+                nivel: "Urgente", 
+                mensaje: `Vence en ${Math.round(diferenciaDias)} dias` 
+            });
+        }
+    }
+
+    return alertas;
+};
+
+const finalizarSesionVehiculo = async (id, kmRecorridos) => { 
+    const repo = AppDataSource.getRepository('Vehiculo');
+    // Lógica para actualizar los kilómetros y liberar el vehículo
+  try {
+    const vehiculoRepository = AppDataSource.getRepository("Vehiculo");
+    const vehiculo = await vehiculoRepository.findOneBy({ id: parseInt(id) });
+    
+    if (vehiculo) {
+      // Sumamos los kilómetros recorridos al total actual
+      vehiculo.kilometraje_actual += parseInt(kmRecorridos);
+      // Cambiamos el estado para que otros puedan usarlo
+      vehiculo.estado = 'disponible';
+      
+      return await vehiculoRepository.save(vehiculo);
+    }
+    throw new Error("Vehículo no encontrado");
+  } catch (error) {
+    console.error("Error en finalizarSesionVehiculo:", error);
+    throw error;
+  }
+    
+};
+
 module.exports = {
   getKPIs, getClasesHoy, getClasesProximas, getVehiculos,
   getGraficoSemana, getUsoFlota, generarReporteAvanzado,
   getAprobadosReprobados, getOcupacionSede, getIngresos, getRendimientoMes,
-  crearMeta, obtenerMetas, actualizarMeta, eliminarMeta,
+  crearMeta, obtenerMetas, actualizarMeta, eliminarMeta,obtenerAlertasVehiculo, finalizarSesionVehiculo,
 };

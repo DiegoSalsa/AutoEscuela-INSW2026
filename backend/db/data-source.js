@@ -40,10 +40,15 @@ const Vehiculo = new EntitySchema({
   tableName: 'vehiculos',
   columns: {
     id:      { primary: true, type: 'int', generated: true },
-    patente: { type: 'varchar' },
+    patente: { type: 'varchar', unique: true },
     modelo:  { type: 'varchar' },
     estado:  { type: 'varchar', default: 'disponible' },
     sede_id: { type: 'int' },
+    kilometraje_actual: { type: 'int', default: 0 },
+    km_ultimo_aceite: { type: 'int', nullable: true },
+    km_ultimos_frenos: { type: 'int', nullable: true },
+    km_proximo_mantenimiento: { type: 'int', nullable: true },
+    fecha_revision_tecnica: { type: 'date', nullable: true },
   },
   relations: {
     sede: {
