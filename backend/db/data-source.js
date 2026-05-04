@@ -19,11 +19,16 @@ const Usuario = new EntitySchema({
   name: 'Usuario',
   tableName: 'usuarios',
   columns: {
-    id:      { primary: true, type: 'int', generated: true },
-    nombre:  { type: 'varchar' },
-    rol:     { type: 'varchar' },
-    estado:  { type: 'varchar', default: 'activo' },
-    sede_id: { type: 'int' },
+    id:        { primary: true, type: 'int', generated: true },
+    nombre:    { type: 'varchar' },
+    email:     { type: 'varchar', unique: true, nullable: true },
+    telefono:  { type: 'varchar', nullable: true },
+    rut:       { type: 'varchar', unique: true, nullable: true },
+    rol:       { type: 'varchar' },
+    estado:    { type: 'varchar', default: 'activo' },
+    sede_id:   { type: 'int' },
+    created_at: { type: 'timestamp', createDate: true },
+    updated_at: { type: 'timestamp', updateDate: true },
   },
   relations: {
     sede: {
@@ -172,18 +177,61 @@ const Pago = new EntitySchema({
   },
 });
 
+// ---------- Entidad: ModuloTeorico ----------
+const ModuloTeorico = new EntitySchema({
+  name: 'ModuloTeorico',
+  tableName: 'modulos_teoricos',
+  columns: {
+    id:               { primary: true, type: 'int', generated: true },
+    nombre:           { type: 'varchar', length: 120 },
+    descripcion:      { type: 'text', nullable: true },
+    horas_teoricas:   { type: 'int', default: 0 },
+    orden:            { type: 'int', default: 0 },
+    created_at:       { type: 'timestamp', createDate: true },
+    updated_at:       { type: 'timestamp', updateDate: true },
+  },
+});
+
+// ---------- Entidad: EstudianteModuloProgreso ----------
+const EstudianteModuloProgreso = new EntitySchema({
+  name: 'EstudianteModuloProgreso',
+  tableName: 'estudiante_modulo_progreso',
+  columns: {
+    id:                  { primary: true, type: 'int', generated: true },
+    estudiante_id:       { type: 'int' },
+    modulo_id:           { type: 'int' },
+    aprobado:            { type: 'boolean', default: false },
+    calificacion:        { type: 'int', nullable: true },
+    fecha_aprobacion:    { type: 'timestamp', nullable: true },
+    created_at:          { type: 'timestamp', createDate: true },
+    updated_at:          { type: 'timestamp', updateDate: true },
+  },
+  relations: {
+    estudiante: {
+      type: 'many-to-one',
+      target: 'Usuario',
+      joinColumn: { name: 'estudiante_id' },
+    },
+    modulo: {
+      type: 'many-to-one',
+      target: 'ModuloTeorico',
+      joinColumn: { name: 'modulo_id' },
+    },
+  },
+});
+
 // ---------- DataSource ----------
 const AppDataSource = new DataSource({
   type: 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT, 10) || 5432,
-  username: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'autoescuela',
+  host: String(process.env.DB_HOST || 'localhost'),
+  port: parseInt(process.env.DB_PORT || '5432', 10),
+  username: String(process.env.DB_USER || 'postgres'),
+  password: String(process.env.DB_PASSWORD || 'postgres'),
+  database: String(process.env.DB_NAME || 'autoescuela'),
   synchronize: false,
   logging: false,
-  entities: [Sede, Usuario, Vehiculo, Reserva, MetaKPI, ResultadoExamen, Pago],
+  entities: [Sede, Usuario, Vehiculo, Reserva, MetaKPI, ResultadoExamen, Pago, ModuloTeorico, EstudianteModuloProgreso],
 });
 
-module.exports = { AppDataSource, Sede, Usuario, Vehiculo, Reserva, MetaKPI, ResultadoExamen, Pago };
+module.exports = { AppDataSource, Sede, Usuario, Vehiculo, Reserva, MetaKPI, ResultadoExamen, Pago, ModuloTeorico, EstudianteModuloProgreso };
 

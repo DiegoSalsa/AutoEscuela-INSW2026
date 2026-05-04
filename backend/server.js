@@ -1,4 +1,11 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+console.log('[DEBUG] DB_HOST:', process.env.DB_HOST);
+console.log('[DEBUG] DB_PORT:', process.env.DB_PORT);
+console.log('[DEBUG] DB_USER:', process.env.DB_USER);
+console.log('[DEBUG] DB_PASSWORD:', process.env.DB_PASSWORD);
+console.log('[DEBUG] DB_NAME:', process.env.DB_NAME);
+
 const express = require('express');
 const cors = require('cors');
 const { AppDataSource } = require('./db/data-source');
