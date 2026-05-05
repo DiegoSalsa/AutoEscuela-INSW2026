@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getSedes, getEstudiantes, getInstructores, getVehiculos } from '../api/reservas';
+import { getSedes, getEstudiantes, getInstructores, getVehiculos } from '../service/reservas.Service';
 import './SelectorRecursos.css';
 
 export default function SelectorRecursos({ selecciones, onSelect }) {
@@ -60,7 +60,7 @@ export default function SelectorRecursos({ selecciones, onSelect }) {
   return (
     <div className="selector-recursos">
       <div className="form-group">
-        <label>📍 Sede</label>
+        <label>Sede</label>
         <select name="sedeId" value={selecciones.sedeId || ''} onChange={handleChange}>
           <option value="">Seleccione Sede...</option>
           {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
@@ -68,7 +68,7 @@ export default function SelectorRecursos({ selecciones, onSelect }) {
       </div>
 
       <div className="form-group">
-        <label>🎓 Estudiante</label>
+        <label>Estudiante</label>
         <select name="estudianteId" value={selecciones.estudianteId || ''} onChange={handleChange} disabled={!selecciones.sedeId}>
           <option value="">Seleccione Estudiante...</option>
           {estudiantes.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
@@ -76,7 +76,7 @@ export default function SelectorRecursos({ selecciones, onSelect }) {
       </div>
 
       <div className="form-group">
-        <label>👨‍🏫 Instructor</label>
+        <label>Instructor</label>
         <select name="instructorId" value={selecciones.instructorId || ''} onChange={handleChange} disabled={!selecciones.sedeId}>
           <option value="">Seleccione Instructor...</option>
           {instructores.map(i => <option key={i.id} value={i.id}>{i.nombre}</option>)}
@@ -84,7 +84,7 @@ export default function SelectorRecursos({ selecciones, onSelect }) {
       </div>
 
       <div className="form-group">
-        <label>🚗 Vehículo</label>
+        <label>Vehículo</label>
         <select name="vehiculoId" value={selecciones.vehiculoId || ''} onChange={handleChange} disabled={!selecciones.sedeId}>
           <option value="">Seleccione Vehículo...</option>
           {vehiculos.map(v => <option key={v.id} value={v.id}>{v.patente} — {v.modelo}</option>)}

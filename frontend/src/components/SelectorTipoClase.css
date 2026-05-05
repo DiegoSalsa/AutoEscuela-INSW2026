@@ -29,36 +29,21 @@
 }
 
 .tipo-clase-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  border-radius: 4px 0 0 4px;
-  background-color: var(--tc-color, var(--primary-color));
-  opacity: 0.4;
-  transition: opacity 0.2s ease;
+  display: none;
 }
 
 .tipo-clase-card:hover {
-  border-color: var(--tc-color, var(--primary-color));
+  border-color: var(--primary-color, #002366);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.tipo-clase-card:hover::before {
-  opacity: 1;
-}
-
 .tipo-clase-card.seleccionado {
-  border-color: var(--tc-color, var(--primary-color));
-  background: color-mix(in srgb, var(--tc-color, var(--primary-color)) 8%, var(--card-bg));
+  border-color: var(--primary-color, #002366);
+  background: rgba(0, 35, 102, 0.06);
+  box-shadow: 0 0 0 2px rgba(0, 35, 102, 0.12);
 }
 
-.tipo-clase-card.seleccionado::before {
-  opacity: 1;
-}
 
 .tipo-clase-nombre {
   font-weight: 600;
@@ -85,8 +70,8 @@
   display: inline-block;
   padding: 2px 8px;
   border-radius: 12px;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 0.7rem;
-  color: white;
-  background-color: var(--tc-color, var(--primary-color));
+  color: #ffffff;
+  /* el background viene del estilo inline del componente (tipo.color) */
 }

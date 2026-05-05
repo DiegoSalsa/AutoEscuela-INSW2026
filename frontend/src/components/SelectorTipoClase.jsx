@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getTiposClase } from '../api/reservas';
+import { getTiposClase } from '../service/reservas.Service';
 import './SelectorTipoClase.css';
 
 export default function SelectorTipoClase({ tipoSeleccionado, onSelect }) {
@@ -16,7 +16,7 @@ export default function SelectorTipoClase({ tipoSeleccionado, onSelect }) {
   if (cargando) {
     return (
       <div className="tipo-clase-section">
-        <h3>📚 Tipo de clase</h3>
+        <h3>Tipo de clase</h3>
         <p className="text-muted text-sm">Cargando tipos de clase...</p>
       </div>
     );
@@ -28,7 +28,7 @@ export default function SelectorTipoClase({ tipoSeleccionado, onSelect }) {
 
   return (
     <div className="tipo-clase-section">
-      <h3>📚 Tipo de clase</h3>
+      <h3>Tipo de clase</h3>
       <div className="tipo-clase-grid">
         {tipos.map((tipo) => (
           <div
