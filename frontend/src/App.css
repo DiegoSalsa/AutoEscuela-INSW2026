@@ -72,9 +72,9 @@ button:focus-visible {
 }
 
 .layout-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100%;
+  padding: 1.5rem 2rem;
+  box-sizing: border-box;
 }
 
 /* Typography utilities */
