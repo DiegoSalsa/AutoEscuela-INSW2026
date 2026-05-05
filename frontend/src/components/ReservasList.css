@@ -1,0 +1,169 @@
+.rl-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.rl-section-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 0.75rem;
+}
+
+.rl-section-historial {
+  opacity: 0.7;
+}
+
+.rl-empty {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  padding: 1rem 0;
+}
+
+.rl-error {
+  color: #dc2626;
+}
+
+.rl-table-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.rl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.rl-table th {
+  background: var(--card-bg);
+  color: var(--text-muted);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.rl-table td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-color);
+  vertical-align: middle;
+}
+
+.rl-table tr:last-child td {
+  border-bottom: none;
+}
+
+.rl-table tr:hover td {
+  background: var(--hover-bg, #f9fafb);
+}
+
+.rl-id {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.rl-row-muted td {
+  color: var(--text-muted);
+}
+
+.rl-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rl-actions {
+  display: flex;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.rl-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.rl-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.rl-btn-edit {
+  background: var(--primary-color, #002366);
+  color: white;
+}
+
+.rl-btn-edit:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.rl-btn-cancel {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.rl-btn-cancel:hover:not(:disabled) {
+  background: #fca5a5;
+}
+
+/* ── Historial header (título + botón en la misma fila) ── */
+.rl-historial-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.rl-historial-header .rl-section-title {
+  margin-bottom: 0;
+}
+
+/* ── Botón toggle mostrar/ocultar historial ── */
+.rl-btn-toggle {
+  flex-shrink: 0;
+  padding: 5px 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border-color, #e5e7eb);
+  background: transparent;
+  color: var(--text-muted, #6b7280);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.rl-btn-toggle:hover {
+  border-color: var(--primary-color, #002366);
+  color: var(--primary-color, #002366);
+  background: rgba(0, 35, 102, 0.04);
+}
+
+/* ── Texto de ayuda junto al título ── */
+.rl-hint {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-muted, #9ca3af);
+  margin-left: 0.5rem;
+}
+
+/* ── Sección de completadas recientes ── */
+.rl-section-title--completadas {
+  color: #0891b2;
+}
