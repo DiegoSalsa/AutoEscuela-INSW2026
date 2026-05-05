@@ -78,7 +78,7 @@ const emailWrapper = (contenido) => `
           <tr>
             <td style="background: linear-gradient(135deg, #002366 0%, #1A237E 50%, #283593 100%); padding: 32px 40px; text-align: center;">
               <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">
-                🚗 AutoDrive Academy
+                AutoDrive Academy
               </h1>
               <p style="margin: 8px 0 0 0; color: rgba(255,255,255,0.85); font-size: 13px; letter-spacing: 1px; text-transform: uppercase;">
                 Sistema de Agendamiento
@@ -100,7 +100,7 @@ const emailWrapper = (contenido) => `
                 <tr>
                   <td style="color: #94a3b8; font-size: 12px; line-height: 1.6;">
                     <strong style="color: #64748b;">AutoDrive Academy</strong><br>
-                    📧 contacto@autodrive.cl · 📞 +56 9 1234 5678<br>
+                    contacto@autodrive.cl · +56 9 1234 5678<br>
                     Este correo fue generado automáticamente. No responder.
                   </td>
                 </tr>
@@ -120,13 +120,13 @@ const emailWrapper = (contenido) => `
 const bloqueInfoSede = (sede) => {
   if (!sede || !sede.nombre) return '';
   return `
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0f9ff; border-radius: 10px; padding: 16px 20px; margin-top: 16px; border-left: 4px solid #2563eb;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0f9ff; border-radius: 10px; padding: 16px 20px; margin-top: 16px;">
       <tr>
         <td>
           <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #1e3a5f;">
-            📍 ${sede.nombre}
+            ${sede.nombre}
           </p>
-          ${sede.direccion ? `<p style="margin: 0; font-size: 13px; color: #64748b;">📌 ${sede.direccion}</p>` : ''}
+          ${sede.direccion ? `<p style="margin: 0; font-size: 13px; color: #64748b;">${sede.direccion}</p>` : ''}
         </td>
       </tr>
     </table>
@@ -140,7 +140,7 @@ const bloqueInfoTipoClase = (tipoClase) => {
   const color = tipoClase.color || '#2563eb';
   return `
     <tr>
-      <td style="padding: 10px 16px; font-weight: 600; color: #374151; vertical-align: top;">📚 Tipo de clase:</td>
+      <td style="padding: 10px 16px; font-weight: 600; color: #374151; vertical-align: top;">Tipo de clase:</td>
       <td style="padding: 10px 16px; color: #1f2937;">
         <span style="display: inline-block; background-color: ${color}15; color: ${color}; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid ${color}30;">
           ${tipoClase.nombre}
@@ -159,36 +159,32 @@ const enviarConfirmacion = (reserva, emailEstudiante, sede, tipoClase) => {
   const horaInicio = new Date(reserva.fecha_inicio).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
   const horaFin = new Date(reserva.fecha_fin).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
 
-  const subject = `✅ Reserva Confirmada — ${fechaFormateada}`;
+  const subject = `Reserva Confirmada — ${fechaFormateada}`;
   const contenido = `
     <div style="text-align: center; margin-bottom: 24px;">
-      <div style="display: inline-block; background-color: #dcfce7; border-radius: 50%; width: 64px; height: 64px; line-height: 64px; font-size: 32px;">
-        ✅
+      <div style="display: inline-block; background-color: #dcfce7; border-radius: 50%; width: 64px; height: 64px; line-height: 64px; font-size: 40px; font-weight: 700; color: #166534;">
+        &#10003;
       </div>
-      <h2 style="margin: 16px 0 4px 0; color: #166534; font-size: 22px;">¡Reserva Confirmada!</h2>
+      <h2 style="margin: 16px 0 4px 0; color: #166534; font-size: 22px;">Reserva Confirmada</h2>
       <p style="margin: 0; color: #6b7280; font-size: 14px;">Tu clase ha sido agendada exitosamente.</p>
     </div>
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; overflow: hidden; margin: 16px 0;">
       <tr>
-        <td style="padding: 10px 16px; font-weight: 600; color: #374151; border-bottom: 1px solid #e2e8f0;">📅 Fecha:</td>
+        <td style="padding: 10px 16px; font-weight: 600; color: #374151; border-bottom: 1px solid #e2e8f0;">Fecha:</td>
         <td style="padding: 10px 16px; color: #1f2937; border-bottom: 1px solid #e2e8f0; text-transform: capitalize;">${fechaFormateada}</td>
       </tr>
       <tr>
-        <td style="padding: 10px 16px; font-weight: 600; color: #374151; border-bottom: 1px solid #e2e8f0;">🕐 Horario:</td>
+        <td style="padding: 10px 16px; font-weight: 600; color: #374151; border-bottom: 1px solid #e2e8f0;">Horario:</td>
         <td style="padding: 10px 16px; color: #1f2937; border-bottom: 1px solid #e2e8f0;">${horaInicio} — ${horaFin}</td>
       </tr>
       ${bloqueInfoTipoClase(tipoClase)}
-      <tr>
-        <td style="padding: 10px 16px; font-weight: 600; color: #374151;">🆔 Reserva:</td>
-        <td style="padding: 10px 16px; color: #1f2937; font-family: monospace;">#${reserva.id}</td>
-      </tr>
     </table>
 
     ${bloqueInfoSede(sede)}
 
     <p style="margin: 24px 0 0 0; color: #6b7280; font-size: 13px; text-align: center;">
-      Recuerda llegar 10 minutos antes de tu clase. ¡Te esperamos! 🎓
+      Recuerda llegar 10 minutos antes de tu clase.
     </p>
   `;
 
@@ -203,15 +199,15 @@ const enviarCancelacion = (reserva, emailEstudiante, sede, tipoClase) => {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
 
-  const subject = `❌ Reserva Cancelada — ${fechaFormateada}`;
+  const subject = `Reserva Cancelada — ${fechaFormateada}`;
   const contenido = `
     <div style="text-align: center; margin-bottom: 24px;">
-      <div style="display: inline-block; background-color: #fee2e2; border-radius: 50%; width: 64px; height: 64px; line-height: 64px; font-size: 32px;">
-        ❌
+      <div style="display: inline-block; background-color: #fee2e2; border-radius: 50%; width: 64px; height: 64px; line-height: 64px; font-size: 40px; font-weight: 700; color: #991b1b;">
+        &#10007;
       </div>
       <h2 style="margin: 16px 0 4px 0; color: #991b1b; font-size: 22px;">Reserva Cancelada</h2>
       <p style="margin: 0; color: #6b7280; font-size: 14px;">
-        La reserva <strong>#${reserva.id}</strong> del ${fechaFormateada} ha sido cancelada.
+        Tu reserva del ${fechaFormateada} ha sido cancelada.
       </p>
     </div>
 
@@ -232,13 +228,13 @@ const enviarRecordatorio = (reserva, emailEstudiante, sede, tipoClase) => {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
 
-  const subject = `⏰ Recordatorio: Tu clase es en 1 hora`;
+  const subject = `Recordatorio: Tu clase es en 1 hora`;
   const contenido = `
     <div style="text-align: center; margin-bottom: 24px;">
-      <div style="display: inline-block; background-color: #fef3c7; border-radius: 50%; width: 64px; height: 64px; line-height: 64px; font-size: 32px;">
-        ⏰
+      <div style="display: inline-block; background-color: #fef3c7; border-radius: 50%; width: 64px; height: 64px; line-height: 64px; font-size: 22px; font-weight: 700; color: #92400e;">
+        1h
       </div>
-      <h2 style="margin: 16px 0 4px 0; color: #92400e; font-size: 22px;">¡Tu clase empieza pronto!</h2>
+      <h2 style="margin: 16px 0 4px 0; color: #92400e; font-size: 22px;">Tu clase empieza pronto</h2>
       <p style="margin: 0; color: #6b7280; font-size: 14px;">
         Tienes una clase programada para las <strong>${horaInicio}</strong> hrs.
       </p>
@@ -248,7 +244,7 @@ const enviarRecordatorio = (reserva, emailEstudiante, sede, tipoClase) => {
       <tr>
         <td>
           <p style="margin: 0 0 4px 0; font-size: 14px; font-weight: 600; color: #92400e;">
-            📅 ${fechaFormateada}
+            ${fechaFormateada}
           </p>
           <p style="margin: 0; font-size: 13px; color: #78716c;">
             Recuerda llegar con tiempo a la sede.

@@ -16,6 +16,11 @@ router.get('/estudiantes', controller.obtenerEstudiantes);
 router.get('/instructores', controller.obtenerInstructores);
 router.get('/vehiculos', controller.obtenerVehiculos);
 
+// CRUD completo por ID
+router.get('/:id', controller.obtenerReservaPorId);
+router.put('/:id', controller.actualizarReserva);
+router.delete('/:id', controller.cancelarReserva);
+
 // PATCH — Contingencia: suspender reservas futuras de un vehículo
 router.patch('/vehiculo/:vehiculoId/suspender', controller.suspenderReservasVehiculo);
 

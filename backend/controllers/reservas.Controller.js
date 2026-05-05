@@ -64,15 +64,16 @@ const obtenerReservas = async (req, res) => {
 // obtener horarios ocupados (para disponibilidad)
 const obtenerHorariosOcupados = async (req, res) => {
   try {
-    let { vi, fi, ff, si, ii } = req.query;
+    let { vi, fi, ff, si, ii, ei } = req.query;
     const vehiculoId = vi;
     const fechaInicio = fi;
     const fechaFin = ff;
     const sedeId = si;
     const instructorId = ii;
+    const estudianteId = ei;
 
     const ocupados = await reservasService.obtenerHorariosOcupados({
-      fechaInicio, fechaFin, sedeId, instructorId, vehiculoId
+      fechaInicio, fechaFin, sedeId, instructorId, vehiculoId, estudianteId
     });
     res.json(ocupados);
   } catch (error) {
@@ -169,7 +170,56 @@ const obtenerVehiculos = async (req, res) => {
   }
 };
 
+
+// GET /reservas/:id — obtener una reserva por ID
+const obtenerReservaPorId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const reserva = await reservasService.obtenerReservaPorId(parseInt(id, 10));
+    res.json(reserva);
+  } catch (error) {
+    const statusCode = error.status || 500;
+    res.status(statusCode).json({ error: error.message });
+  }
+};
+
+// PUT /reservas/:id — actualizar reserva
+const actualizarReserva = async (req, res) => {
+  try {
+    const { id } = req.params;
+    // El header x-rol lo envía el frontend según el usuario fantasma seleccionado
+    const esAdmin = req.headers['x-rol'] === 'admin';
+    const reserva = await reservasService.actualizarReservaTransaccional(
+      parseInt(id, 10),
+      req.body,
+      esAdmin
+    );
+    emitirEventoReserva('reserva:actualizada', reserva);
+    res.json({ mensaje: 'Reserva actualizada exitosamente', data: reserva });
+  } catch (error) {
+    console.error('Error en actualizarReserva:', error.message);
+    const statusCode = error.status || 500;
+    res.status(statusCode).json({ error: error.message });
+  }
+};
+
+// DELETE /reservas/:id — cancelar reserva
+const cancelarReserva = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const esAdmin = req.headers['x-rol'] === 'admin';
+    const reserva = await reservasService.cancelarReserva(parseInt(id, 10), esAdmin);
+    emitirEventoReserva('reserva:cancelada', reserva);
+    res.json({ mensaje: 'Reserva cancelada exitosamente', data: reserva });
+  } catch (error) {
+    console.error('Error en cancelarReserva:', error.message);
+    const statusCode = error.status || 500;
+    res.status(statusCode).json({ error: error.message });
+  }
+};
+
 module.exports = {
   crearReserva, obtenerReservas, obtenerHorariosOcupados, suspenderReservasVehiculo,
   obtenerTiposClase, obtenerSedes, obtenerEstudiantes, obtenerInstructores, obtenerVehiculos,
+  obtenerReservaPorId, actualizarReserva, cancelarReserva,
 };
