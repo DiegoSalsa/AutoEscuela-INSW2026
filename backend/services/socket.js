@@ -12,16 +12,16 @@ const initSocket = (httpServer) => {
   });
 
   io.on('connection', (socket) => {
-    console.log(`🔌 Cliente conectado: ${socket.id}`);
+    console.log(`[Socket] Cliente conectado: ${socket.id}`);
 
     // El cliente se une a la room de su sede
     socket.on('join:sede', (sedeId) => {
       socket.join(`sede-${sedeId}`);
-      console.log(`📍 Socket ${socket.id} unido a sede-${sedeId}`);
+      console.log(`[Socket] Socket ${socket.id} unido a sede-${sedeId}`);
     });
 
     socket.on('disconnect', () => {
-      console.log(`❌ Cliente desconectado: ${socket.id}`);
+      console.log(`[Socket] Cliente desconectado: ${socket.id}`);
     });
   });
 

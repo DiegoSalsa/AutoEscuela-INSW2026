@@ -162,9 +162,6 @@ const enviarConfirmacion = (reserva, emailEstudiante, sede, tipoClase) => {
   const subject = `Reserva Confirmada — ${fechaFormateada}`;
   const contenido = `
     <div style="text-align: center; margin-bottom: 24px;">
-      <div style="display: inline-block; background-color: #dcfce7; border-radius: 50%; width: 64px; height: 64px; line-height: 64px; font-size: 40px; font-weight: 700; color: #166534;">
-        &#10003;
-      </div>
       <h2 style="margin: 16px 0 4px 0; color: #166534; font-size: 22px;">Reserva Confirmada</h2>
       <p style="margin: 0; color: #6b7280; font-size: 14px;">Tu clase ha sido agendada exitosamente.</p>
     </div>
@@ -202,9 +199,6 @@ const enviarCancelacion = (reserva, emailEstudiante, sede, tipoClase) => {
   const subject = `Reserva Cancelada — ${fechaFormateada}`;
   const contenido = `
     <div style="text-align: center; margin-bottom: 24px;">
-      <div style="display: inline-block; background-color: #fee2e2; border-radius: 50%; width: 64px; height: 64px; line-height: 64px; font-size: 40px; font-weight: 700; color: #991b1b;">
-        &#10007;
-      </div>
       <h2 style="margin: 16px 0 4px 0; color: #991b1b; font-size: 22px;">Reserva Cancelada</h2>
       <p style="margin: 0; color: #6b7280; font-size: 14px;">
         Tu reserva del ${fechaFormateada} ha sido cancelada.
@@ -231,9 +225,6 @@ const enviarRecordatorio = (reserva, emailEstudiante, sede, tipoClase) => {
   const subject = `Recordatorio: Tu clase es en 1 hora`;
   const contenido = `
     <div style="text-align: center; margin-bottom: 24px;">
-      <div style="display: inline-block; background-color: #fef3c7; border-radius: 50%; width: 64px; height: 64px; line-height: 64px; font-size: 22px; font-weight: 700; color: #92400e;">
-        1h
-      </div>
       <h2 style="margin: 16px 0 4px 0; color: #92400e; font-size: 22px;">Tu clase empieza pronto</h2>
       <p style="margin: 0; color: #6b7280; font-size: 14px;">
         Tienes una clase programada para las <strong>${horaInicio}</strong> hrs.
@@ -259,4 +250,41 @@ const enviarRecordatorio = (reserva, emailEstudiante, sede, tipoClase) => {
   enviarEmail(emailEstudiante, subject, emailWrapper(contenido)).catch(() => {});
 };
 
-module.exports = { initMailer, enviarConfirmacion, enviarCancelacion, enviarRecordatorio };
+//  Enviar notificación de modificación de reserva
+const enviarModificacion = (reserva, emailEstudiante, sede, tipoClase) => {
+  const fechaFormateada = new Date(reserva.fecha_inicio).toLocaleDateString('es-CL', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  });
+  const horaInicio = new Date(reserva.fecha_inicio).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+  const horaFin = new Date(reserva.fecha_fin).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+
+  const subject = `Reserva Modificada — ${fechaFormateada}`;
+  const contenido = `
+    <div style="text-align: center; margin-bottom: 24px;">
+      <h2 style="margin: 16px 0 4px 0; color: #1e40af; font-size: 22px;">Reserva Modificada</h2>
+      <p style="margin: 0; color: #6b7280; font-size: 14px;">Tu reserva ha sido actualizada con los siguientes datos.</p>
+    </div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; overflow: hidden; margin: 16px 0;">
+      <tr>
+        <td style="padding: 10px 16px; font-weight: 600; color: #374151; border-bottom: 1px solid #e2e8f0;">Fecha:</td>
+        <td style="padding: 10px 16px; color: #1f2937; border-bottom: 1px solid #e2e8f0; text-transform: capitalize;">${fechaFormateada}</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px 16px; font-weight: 600; color: #374151; border-bottom: 1px solid #e2e8f0;">Horario:</td>
+        <td style="padding: 10px 16px; color: #1f2937; border-bottom: 1px solid #e2e8f0;">${horaInicio} — ${horaFin}</td>
+      </tr>
+      ${bloqueInfoTipoClase(tipoClase)}
+    </table>
+
+    ${bloqueInfoSede(sede)}
+
+    <p style="margin: 24px 0 0 0; color: #6b7280; font-size: 13px; text-align: center;">
+      Si no realizaste este cambio, contacta a la autoescuela.
+    </p>
+  `;
+
+  enviarEmail(emailEstudiante, subject, emailWrapper(contenido)).catch(() => {});
+};
+
+module.exports = { initMailer, enviarConfirmacion, enviarCancelacion, enviarModificacion, enviarRecordatorio };

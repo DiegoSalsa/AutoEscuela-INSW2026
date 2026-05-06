@@ -31,7 +31,7 @@ app.get('/', (_req, res) => {
 // inicializar TypeORM y luego levantar el servidor
 AppDataSource.initialize()
   .then(async () => {
-    console.log('✅ TypeORM conectado a PostgreSQL');
+    console.log('[BD] TypeORM conectado a PostgreSQL');
 
     // Inicializar Nodemailer (async por si usa Ethereal)
     await initMailer();
@@ -40,11 +40,11 @@ AppDataSource.initialize()
     iniciarScheduler();
 
     server.listen(PORT, () => {
-      console.log(`🚗 Servidor corriendo en http://localhost:${PORT}`);
-      console.log(`🔌 WebSocket escuchando en ws://localhost:${PORT}`);
+      console.log(`[Server] Servidor corriendo en http://localhost:${PORT}`);
+      console.log(`[Socket] WebSocket escuchando en ws://localhost:${PORT}`);
     });
   })
   .catch((err) => {
-    console.error('❌ Error al inicializar TypeORM:', err.message);
+    console.error('[Error] Error al inicializar TypeORM:', err.message);
     process.exit(1);
   });
