@@ -1,16 +1,16 @@
 const reservasService = require('../services/reservas.Service');
 const { emitirEventoReserva } = require('../services/socket');
-const { enviarConfirmacion } = require('../services/notificaciones.Service');
+const { enviarConfirmacion, enviarModificacion, enviarCancelacion } = require('../services/notificaciones.Service');
 const { AppDataSource } = require('../db/data-source');
 
 const crearReserva = async (req, res) => {
   try {
     const nuevaReserva = await reservasService.crearReservaTransaccional(req.body);
 
-    // Emitir evento en tiempo real via Socket.io
+    // Notificar por WebSocket
     emitirEventoReserva('reserva:creada', nuevaReserva);
 
-    // Enviar email de confirmación de forma asíncrona (fire-and-forget)
+    // Enviar email de confirmación
     const repoUsuario = AppDataSource.getRepository('Usuario');
     const repoSede = AppDataSource.getRepository('Sede');
 
@@ -41,7 +41,7 @@ const crearReserva = async (req, res) => {
   }
 };
 
-// obtener reservas para calendario (usa req.validatedQuery del middleware Joi)
+// Obtener lista de reservas
 const obtenerReservas = async (req, res) => {
   try {
     const { fi, ff, s, i, v, e } = req.validatedQuery || req.query;
@@ -61,7 +61,7 @@ const obtenerReservas = async (req, res) => {
   }
 };
 
-// obtener horarios ocupados (para disponibilidad)
+// Obtener horarios ocupados
 const obtenerHorariosOcupados = async (req, res) => {
   try {
     let { vi, fi, ff, si, ii, ei } = req.query;
@@ -82,7 +82,7 @@ const obtenerHorariosOcupados = async (req, res) => {
   }
 };
 
-// suspender reservas futuras de un vehículo (contingencia)
+// Suspender reservas de un vehículo
 const suspenderReservasVehiculo = async (req, res) => {
   try {
     const vehiculoId = parseInt(req.params.vehiculoId, 10);
@@ -195,6 +195,22 @@ const actualizarReserva = async (req, res) => {
       esAdmin
     );
     emitirEventoReserva('reserva:actualizada', reserva);
+
+    // Correo de modificación (fire-and-forget)
+    const repoUsuario = AppDataSource.getRepository('Usuario');
+    const repoSede = AppDataSource.getRepository('Sede');
+    Promise.all([
+      repoUsuario.findOne({ where: { id: reserva.estudiante_id } }),
+      repoSede.findOne({ where: { id: reserva.sede_id } }),
+      reserva.tipo_clase_id
+        ? AppDataSource.getRepository('TipoClase').findOne({ where: { id: reserva.tipo_clase_id } })
+        : Promise.resolve(null),
+    ])
+      .then(([est, sede, tipoClase]) => {
+        if (est && est.email) enviarModificacion(reserva, est.email, sede, tipoClase);
+      })
+      .catch(() => {});
+
     res.json({ mensaje: 'Reserva actualizada exitosamente', data: reserva });
   } catch (error) {
     console.error('Error en actualizarReserva:', error.message);
@@ -210,6 +226,19 @@ const cancelarReserva = async (req, res) => {
     const esAdmin = req.headers['x-rol'] === 'admin';
     const reserva = await reservasService.cancelarReserva(parseInt(id, 10), esAdmin);
     emitirEventoReserva('reserva:cancelada', reserva);
+
+    // Correo de cancelación (fire-and-forget)
+    const repoUsuario = AppDataSource.getRepository('Usuario');
+    const repoSede = AppDataSource.getRepository('Sede');
+    Promise.all([
+      repoUsuario.findOne({ where: { id: reserva.estudiante_id } }),
+      repoSede.findOne({ where: { id: reserva.sede_id } }),
+    ])
+      .then(([est, sede]) => {
+        if (est && est.email) enviarCancelacion(reserva, est.email, sede);
+      })
+      .catch(() => {});
+
     res.json({ mensaje: 'Reserva cancelada exitosamente', data: reserva });
   } catch (error) {
     console.error('Error en cancelarReserva:', error.message);

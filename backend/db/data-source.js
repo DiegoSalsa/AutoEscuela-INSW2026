@@ -9,8 +9,8 @@ const Sede = new EntitySchema({
   name: 'Sede',
   tableName: 'sedes',
   columns: {
-    id:        { primary: true, type: 'int', generated: true },
-    nombre:    { type: 'varchar' },
+    id: { primary: true, type: 'int', generated: true },
+    nombre: { type: 'varchar' },
     direccion: { type: 'varchar', nullable: true },
   },
 });
@@ -20,12 +20,16 @@ const Usuario = new EntitySchema({
   name: 'Usuario',
   tableName: 'usuarios',
   columns: {
-    id:      { primary: true, type: 'int', generated: true },
-    nombre:  { type: 'varchar' },
-    email:   { type: 'varchar', nullable: true },
-    rol:     { type: 'varchar' },
-    estado:  { type: 'varchar', default: 'activo' },
+    id: { primary: true, type: 'int', generated: true },
+    nombre: { type: 'varchar' },
+    email: { type: 'varchar', nullable: true },
+    telefono: { type: 'varchar', nullable: true },
+    rut: { type: 'varchar', nullable: true },
+    rol: { type: 'varchar' },
+    estado: { type: 'varchar', default: 'activo' },
     sede_id: { type: 'int' },
+    created_at: { type: 'timestamp', createDate: true },
+    updated_at: { type: 'timestamp', updateDate: true },
   },
   relations: {
     sede: {
@@ -41,10 +45,10 @@ const Vehiculo = new EntitySchema({
   name: 'Vehiculo',
   tableName: 'vehiculos',
   columns: {
-    id:      { primary: true, type: 'int', generated: true },
+    id: { primary: true, type: 'int', generated: true },
     patente: { type: 'varchar' },
-    modelo:  { type: 'varchar' },
-    estado:  { type: 'varchar', default: 'disponible' },
+    modelo: { type: 'varchar' },
+    estado: { type: 'varchar', default: 'disponible' },
     sede_id: { type: 'int' },
   },
   relations: {
@@ -61,11 +65,11 @@ const TipoClase = new EntitySchema({
   name: 'TipoClase',
   tableName: 'tipos_clase',
   columns: {
-    id:           { primary: true, type: 'int', generated: true },
-    nombre:       { type: 'varchar', length: 100 },
-    descripcion:  { type: 'varchar', length: 255, nullable: true },
+    id: { primary: true, type: 'int', generated: true },
+    nombre: { type: 'varchar', length: 100 },
+    descripcion: { type: 'varchar', length: 255, nullable: true },
     duracion_min: { type: 'int', default: 60 },
-    color:        { type: 'varchar', length: 7, default: "'#2563eb'" },
+    color: { type: 'varchar', length: 7, default: "'#2563eb'" },
   },
 });
 
@@ -74,16 +78,16 @@ const Reserva = new EntitySchema({
   name: 'Reserva',
   tableName: 'reservas',
   columns: {
-    id:              { primary: true, type: 'int', generated: true },
-    estado:          { type: 'varchar', default: 'confirmada' },
-    fecha_inicio:    { type: 'timestamp' },
-    fecha_fin:       { type: 'timestamp' },
-    estudiante_id:   { type: 'int' },
-    instructor_id:   { type: 'int' },
-    vehiculo_id:     { type: 'int' },
-    sede_id:         { type: 'int' },
-    tipo_clase_id:   { type: 'int', nullable: true },
-    created_at:      { type: 'timestamp', createDate: true },
+    id: { primary: true, type: 'int', generated: true },
+    estado: { type: 'varchar', default: 'confirmada' },
+    fecha_inicio: { type: 'timestamp' },
+    fecha_fin: { type: 'timestamp' },
+    estudiante_id: { type: 'int' },
+    instructor_id: { type: 'int' },
+    vehiculo_id: { type: 'int' },
+    sede_id: { type: 'int' },
+    tipo_clase_id: { type: 'int', nullable: true },
+    created_at: { type: 'timestamp', createDate: true },
   },
   relations: {
     estudiante: {
@@ -159,6 +163,86 @@ const MetaKPI = new EntitySchema({
   },
 });
 
+// ---------- Entidad: ModuloTeorico (Diego) ----------
+const ModuloTeorico = new EntitySchema({
+  name: 'ModuloTeorico',
+  tableName: 'modulos_teoricos',
+  columns: {
+    id: { primary: true, type: 'int', generated: true },
+    nombre: { type: 'varchar', length: 120 },
+    descripcion: { type: 'text', nullable: true },
+    horas_teoricas: { type: 'int', default: 0 },
+    orden: { type: 'int', default: 0 },
+    created_at: { type: 'timestamp', createDate: true },
+    updated_at: { type: 'timestamp', updateDate: true },
+  },
+});
+
+// ---------- Entidad: EstudianteModuloProgreso (Diego) ----------
+const EstudianteModuloProgreso = new EntitySchema({
+  name: 'EstudianteModuloProgreso',
+  tableName: 'estudiante_modulo_progreso',
+  columns: {
+    id: { primary: true, type: 'int', generated: true },
+    estudiante_id: { type: 'int' },
+    modulo_id: { type: 'int' },
+    aprobado: { type: 'boolean', default: false },
+    calificacion: { type: 'int', nullable: true },
+    fecha_aprobacion: { type: 'timestamp', nullable: true },
+    created_at: { type: 'timestamp', createDate: true },
+    updated_at: { type: 'timestamp', updateDate: true },
+  },
+  relations: {
+    estudiante: {
+      type: 'many-to-one',
+      target: 'Usuario',
+      joinColumn: { name: 'estudiante_id' },
+    },
+    modulo: {
+      type: 'many-to-one',
+      target: 'ModuloTeorico',
+      joinColumn: { name: 'modulo_id' },
+    },
+  },
+});
+
+// ---------- Entidad: ResultadoExamen ----------
+const ResultadoExamen = new EntitySchema({
+  name: 'ResultadoExamen',
+  tableName: 'resultados_examen',
+  columns: {
+    id:             { primary: true, type: 'int', generated: true },
+    estudiante_id:  { type: 'int' },
+    aprobado:       { type: 'boolean' },
+    tipo_examen:    { type: 'varchar', length: 30, default: 'practico' },
+    fecha:          { type: 'date' },
+    sede_id:        { type: 'int' },
+  },
+  relations: {
+    estudiante: { type: 'many-to-one', target: 'Usuario', joinColumn: { name: 'estudiante_id' } },
+    sede:       { type: 'many-to-one', target: 'Sede', joinColumn: { name: 'sede_id' } },
+  },
+});
+
+// ---------- Entidad: Pago ----------
+const Pago = new EntitySchema({
+  name: 'Pago',
+  tableName: 'pagos',
+  columns: {
+    id:             { primary: true, type: 'int', generated: true },
+    estudiante_id:  { type: 'int' },
+    concepto:       { type: 'varchar', length: 80 },
+    monto:          { type: 'decimal', precision: 10, scale: 2 },
+    fecha:          { type: 'date' },
+    sede_id:        { type: 'int' },
+  },
+  relations: {
+    estudiante: { type: 'many-to-one', target: 'Usuario', joinColumn: { name: 'estudiante_id' } },
+    sede:       { type: 'many-to-one', target: 'Sede', joinColumn: { name: 'sede_id' } },
+  },
+});
+
+
 // ---------- DataSource ----------
 const AppDataSource = new DataSource({
   type: 'postgres',
@@ -167,11 +251,9 @@ const AppDataSource = new DataSource({
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'autoescuela',
-  // synchronize en false para no alterar tablas existentes
-  // la tabla metas_kpi se crea con el script de migracion
   synchronize: false,
   logging: false,
-  entities: [Sede, Usuario, Vehiculo, TipoClase, Reserva, MetaKPI],
+  entities: [Sede, Usuario, Vehiculo, TipoClase, Reserva, MetaKPI, ModuloTeorico, EstudianteModuloProgreso, ResultadoExamen, Pago],
 });
 
-module.exports = { AppDataSource, Sede, Usuario, Vehiculo, TipoClase, Reserva, MetaKPI };
+module.exports = { AppDataSource, Sede, Usuario, Vehiculo, TipoClase, Reserva, MetaKPI, ModuloTeorico, EstudianteModuloProgreso, ResultadoExamen, Pago };

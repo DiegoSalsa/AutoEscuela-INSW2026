@@ -1,2 +1,5 @@
 node_modules/
 .env
+Guia_Arquitectura_Reservas.md
+Postman_Reservas.json
+backend/db/migracion_mejoras.sql

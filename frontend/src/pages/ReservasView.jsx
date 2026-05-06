@@ -18,9 +18,9 @@ import './ReservasView.css';
 // El rol se envía como header 'x-rol' al backend para aplicar (o no) la regla de 48h.
 const USUARIOS_FANTASMA = [
   // estudianteId: null = admin ve todas las reservas
-  // estudianteId: 51  = estudiante de prueba (benjamincarrascoarriagada@gmail.com)
+  // estudianteId: 52  = Carlos Prueba (carlos.prueba@test.cl)
   { id: 'admin',      label: 'Administrador / Secretaria', rol: 'admin',      estudianteId: null },
-  { id: 'estudiante', label: 'Estudiante',                 rol: 'estudiante', estudianteId: 51   },
+  { id: 'estudiante', label: 'Estudiante',                 rol: 'estudiante', estudianteId: 52   },
 ];
 
 const ESTADO_INICIAL = {
@@ -93,7 +93,7 @@ export default function ReservasView() {
     };
   }, [socket, fecha, selecciones]);
 
-  // ── Prellenar formulario en modo edición ────────────────────────────────────
+  // ── Prellenar formulario en modo edición 
   const iniciarEdicion = async (reserva) => {
     try {
       const data = await getReservaById(reserva.id);
@@ -106,14 +106,14 @@ export default function ReservasView() {
       });
       setTipoClaseId(data.tipo_clase_id);
       setFecha(new Date(data.fecha_inicio));
-      // Prellenar hora
+      // Prellenar hora (usar hora local, no UTC)
       const fi = new Date(data.fecha_inicio);
       const ff = new Date(data.fecha_fin);
       const pad = (n) => String(n).padStart(2, '0');
       setHora({
-        id: `${pad(fi.getUTCHours())}:${pad(fi.getUTCMinutes())}`,
-        horaInicio: `${pad(fi.getUTCHours())}:${pad(fi.getUTCMinutes())}`,
-        horaFin:    `${pad(ff.getUTCHours())}:${pad(ff.getUTCMinutes())}`,
+        id: `${pad(fi.getHours())}:${pad(fi.getMinutes())}`,
+        horaInicio: `${pad(fi.getHours())}:${pad(fi.getMinutes())}`,
+        horaFin:    `${pad(ff.getHours())}:${pad(ff.getMinutes())}`,
       });
       setError(null);
       setExito(false);
