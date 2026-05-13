@@ -45,7 +45,7 @@ export default function SelectorTipoClase({ tipoSeleccionado, onSelect }) {
               <span className="tipo-clase-desc">{tipo.descripcion}</span>
             )}
             <div className="tipo-clase-meta">
-              <span className="tipo-clase-badge" style={{ backgroundColor: tipo.color || '#2563eb' }}>
+              <span className="tipo-clase-badge" style={{ backgroundColor: 'var(--primary-color)' }}>
                 {tipo.duracion_min} min
               </span>
             </div>

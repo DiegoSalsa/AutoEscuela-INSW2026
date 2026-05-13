@@ -21,7 +21,7 @@ export default function Calendario({ fechaSeleccionada, onSelectFecha }) {
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
 
   const onDateClick = (day) => {
-    // Bloquear domingos según regla de negocio
+    // Bloquear domingos
     if (day.getDay() !== 0) {
       onSelectFecha(day);
     }

@@ -1,4 +1,4 @@
-//Helper — Filtros dinámicos para TypeORM QueryBuilder
+// Aplica filtros dinamicos a un QueryBuilder de TypeORM
 const aplicarFiltros = (qb, filtros, mapa) => {
   Object.entries(mapa).forEach(([param, columna]) => {
     if (filtros[param] != null) {

@@ -8,13 +8,13 @@ export function useSocket(sedeId) {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // Inicializar conexión
+    // Crear conexion WebSocket
     const newSocket = io(SOCKET_URL);
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
       setIsConnected(true);
-      // Unirse al canal de la sede si existe
+      // Suscribirse al canal de la sede
       if (sedeId) {
         newSocket.emit('join:sede', sedeId);
       }

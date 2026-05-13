@@ -1,0 +1,20 @@
+const { EntitySchema } = require('typeorm');
+
+const ResultadoExamen = new EntitySchema({
+  name: 'ResultadoExamen',
+  tableName: 'resultados_examen',
+  columns: {
+    id:             { primary: true, type: 'int', generated: true },
+    estudiante_id:  { type: 'int' },
+    aprobado:       { type: 'boolean' },
+    tipo_examen:    { type: 'varchar', length: 30, default: 'practico' },
+    fecha:          { type: 'date' },
+    sede_id:        { type: 'int' },
+  },
+  relations: {
+    estudiante: { type: 'many-to-one', target: 'Usuario', joinColumn: { name: 'estudiante_id' } },
+    sede:       { type: 'many-to-one', target: 'Sede', joinColumn: { name: 'sede_id' } },
+  },
+});
+
+module.exports = ResultadoExamen;

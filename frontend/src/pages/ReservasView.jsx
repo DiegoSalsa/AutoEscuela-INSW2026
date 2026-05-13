@@ -13,9 +13,8 @@ import ReservasList from '../components/ReservasList';
 import '../App.css';
 import './ReservasView.css';
 
-// ── Usuario fantasma ──────────────────────────────────────────────────────────
-// Simula el rol del usuario actual hasta que el equipo integre auth real.
-// El rol se envía como header 'x-rol' al backend para aplicar (o no) la regla de 48h.
+// Usuario fantasma: simula el rol del usuario actual hasta que se integre auth
+// El rol se envia como header 'x-rol' al backend para la regla de 48h
 const USUARIOS_FANTASMA = [
   // estudianteId: null = admin ve todas las reservas
   // estudianteId: 52  = Carlos Prueba (carlos.prueba@test.cl)
@@ -51,7 +50,7 @@ export default function ReservasView() {
 
   const { socket } = useSocket(selecciones.sedeId);
 
-  // ── Cargar disponibilidad ────────────────────────────────────────────────────
+  // Cargar disponibilidad cuando cambian fecha o recursos
   useEffect(() => {
     if (!fecha || !selecciones.sedeId) return;
     const fetchOcupados = async () => {
@@ -69,7 +68,7 @@ export default function ReservasView() {
     fetchOcupados();
   }, [fecha, selecciones]);
 
-  // ── WebSocket ────────────────────────────────────────────────────────────────
+  // WebSocket: actualizar disponibilidad en tiempo real
   useEffect(() => {
     if (!socket) return;
     const actualizar = () => {
@@ -93,7 +92,7 @@ export default function ReservasView() {
     };
   }, [socket, fecha, selecciones]);
 
-  // ── Prellenar formulario en modo edición 
+  // Prellenar formulario en modo edicion
   const iniciarEdicion = async (reserva) => {
     try {
       const data = await getReservaById(reserva.id);
@@ -133,7 +132,7 @@ export default function ReservasView() {
     setExito(false);
   };
 
-  // ── Confirmar (crear o actualizar) ──────────────────────────────────────────
+  // Confirmar (crear o actualizar reserva)
   const handleConfirmar = async () => {
     setIsLoading(true);
     setError(null);
@@ -175,7 +174,7 @@ export default function ReservasView() {
 
   return (
     <div className="rv-wrapper">
-      {/* ── Header de página ───────────────────────────────────────────────── */}
+      {/* Header */}
       <div className="rv-header">
         <div>
           <h2 className="rv-title">
@@ -208,7 +207,7 @@ export default function ReservasView() {
         )}
       </div>
 
-      {/* ── Tabs ───────────────────────────────────────────────────────────── */}
+      {/* Tabs */}
       {!editandoId && (
         <div className="rv-tabs">
           <button
@@ -226,7 +225,7 @@ export default function ReservasView() {
         </div>
       )}
 
-      {/* ── Tab: lista de reservas ─────────────────────────────────────────── */}
+      {/* Tab: lista de reservas */}
       {tab === 'lista' && !editandoId && (
         <ReservasList
           rol={usuarioFantasma.rol}
@@ -235,7 +234,7 @@ export default function ReservasView() {
         />
       )}
 
-      {/* ── Tab: formulario nueva / edición ───────────────────────────────── */}
+      {/* Tab: formulario nueva / edicion */}
       {(tab === 'nueva' || editandoId) && (
         <div className="rv-form">
           {editandoId && (

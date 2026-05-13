@@ -7,10 +7,10 @@ const crearReserva = async (req, res) => {
   try {
     const nuevaReserva = await reservasService.crearReservaTransaccional(req.body);
 
-    // Notificar por WebSocket
+    // Notificar en tiempo real por WebSocket
     emitirEventoReserva('reserva:creada', nuevaReserva);
 
-    // Enviar email de confirmación
+    // Enviar email de confirmacion (fire-and-forget, no bloquea la API)
     const repoUsuario = AppDataSource.getRepository('Usuario');
     const repoSede = AppDataSource.getRepository('Sede');
 
@@ -41,7 +41,7 @@ const crearReserva = async (req, res) => {
   }
 };
 
-// Obtener lista de reservas
+// Obtener lista de reservas con filtros opcionales
 const obtenerReservas = async (req, res) => {
   try {
     const { fi, ff, s, i, v, e } = req.validatedQuery || req.query;
@@ -61,7 +61,7 @@ const obtenerReservas = async (req, res) => {
   }
 };
 
-// Obtener horarios ocupados
+// Obtener horarios ocupados para el calendario
 const obtenerHorariosOcupados = async (req, res) => {
   try {
     let { vi, fi, ff, si, ii, ei } = req.query;
@@ -82,7 +82,7 @@ const obtenerHorariosOcupados = async (req, res) => {
   }
 };
 
-// Suspender reservas de un vehículo
+// Suspender reservas futuras de un vehiculo (para mantenimiento)
 const suspenderReservasVehiculo = async (req, res) => {
   try {
     const vehiculoId = parseInt(req.params.vehiculoId, 10);
@@ -103,7 +103,7 @@ const suspenderReservasVehiculo = async (req, res) => {
   }
 };
 
-// obtener todos los tipos de clase disponibles
+// Obtener todos los tipos de clase disponibles
 const obtenerTiposClase = async (req, res) => {
   try { 
     const repo = AppDataSource.getRepository('TipoClase');
@@ -115,7 +115,7 @@ const obtenerTiposClase = async (req, res) => {
   }
 };
 
-// ── Endpoints de recursos para el selector de reservas ──
+// Endpoints de recursos para el selector de reservas
 
 const obtenerSedes = async (_req, res) => {
   try {
@@ -183,11 +183,11 @@ const obtenerReservaPorId = async (req, res) => {
   }
 };
 
-// PUT /reservas/:id — actualizar reserva
+// PUT /reservas/:id
 const actualizarReserva = async (req, res) => {
   try {
     const { id } = req.params;
-    // El header x-rol lo envía el frontend según el usuario fantasma seleccionado
+    // El header x-rol lo envia el frontend segun el usuario seleccionado
     const esAdmin = req.headers['x-rol'] === 'admin';
     const reserva = await reservasService.actualizarReservaTransaccional(
       parseInt(id, 10),
@@ -196,7 +196,7 @@ const actualizarReserva = async (req, res) => {
     );
     emitirEventoReserva('reserva:actualizada', reserva);
 
-    // Correo de modificación (fire-and-forget)
+    // Email de modificacion (fire-and-forget)
     const repoUsuario = AppDataSource.getRepository('Usuario');
     const repoSede = AppDataSource.getRepository('Sede');
     Promise.all([
@@ -219,7 +219,7 @@ const actualizarReserva = async (req, res) => {
   }
 };
 
-// DELETE /reservas/:id — cancelar reserva
+// DELETE /reservas/:id
 const cancelarReserva = async (req, res) => {
   try {
     const { id } = req.params;
@@ -227,7 +227,7 @@ const cancelarReserva = async (req, res) => {
     const reserva = await reservasService.cancelarReserva(parseInt(id, 10), esAdmin);
     emitirEventoReserva('reserva:cancelada', reserva);
 
-    // Correo de cancelación (fire-and-forget)
+    // Email de cancelacion (fire-and-forget)
     const repoUsuario = AppDataSource.getRepository('Usuario');
     const repoSede = AppDataSource.getRepository('Sede');
     Promise.all([

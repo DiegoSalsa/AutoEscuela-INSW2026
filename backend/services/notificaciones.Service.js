@@ -2,10 +2,8 @@ const nodemailer = require('nodemailer');
 
 let transporter = null;
 
-/*
-  Inicializar transporter de Nodemailer
-  Si no hay SMTP configurado, crea una cuenta Ethereal de prueba
- */
+// Inicializar transporter de Nodemailer
+// Si no hay SMTP configurado, crea una cuenta Ethereal de prueba
 const initMailer = async () => {
   const smtpHost = process.env.SMTP_HOST;
   const smtpPort = process.env.SMTP_PORT;
@@ -13,7 +11,7 @@ const initMailer = async () => {
   const smtpPass = process.env.SMTP_PASS;
 
   if (smtpHost && smtpUser && smtpPass) {
-    // Usar SMTP configurado en .env
+
     transporter = nodemailer.createTransport({
       host: smtpHost,
       port: parseInt(smtpPort, 10) || 587,
@@ -22,7 +20,7 @@ const initMailer = async () => {
     });
     console.log(`Nodemailer configurado con SMTP: ${smtpHost}`);
   } else {
-    // Crear cuenta Ethereal de prueba automáticamente
+
     try {
       const testAccount = await nodemailer.createTestAccount();
       transporter = nodemailer.createTransport({
@@ -41,7 +39,7 @@ const initMailer = async () => {
 
 const FROM = () => process.env.SMTP_FROM || '"AutoDrive Academy" <noreply@autodrive.cl>';
 
-// Enviar email de forma asíncrona 
+// Enviar email de forma asincrona (fire-and-forget)
 const enviarEmail = async (to, subject, html) => {
   if (!transporter || !to) return;
   try {
@@ -60,7 +58,7 @@ const enviarEmail = async (to, subject, html) => {
   }
 };
 
-//  Template base compartido por todos los emails
+// Template base HTML compartido por todos los emails
 const emailWrapper = (contenido) => `
 <!DOCTYPE html>
 <html lang="es">
@@ -116,7 +114,7 @@ const emailWrapper = (contenido) => `
 </html>
 `;
 
-//  Bloque reutilizable de información de sede
+// Bloque reutilizable de informacion de sede
 const bloqueInfoSede = (sede) => {
   if (!sede || !sede.nombre) return '';
   return `
@@ -134,7 +132,7 @@ const bloqueInfoSede = (sede) => {
 };
 
 
-//  Bloque reutilizable de tipo de clase
+// Bloque reutilizable de tipo de clase
 const bloqueInfoTipoClase = (tipoClase) => {
   if (!tipoClase || !tipoClase.nombre) return '';
   const color = tipoClase.color || '#2563eb';
@@ -150,7 +148,7 @@ const bloqueInfoTipoClase = (tipoClase) => {
   `;
 };
 
-//  Enviar confirmación de reserva
+// Enviar confirmacion de reserva
 
 const enviarConfirmacion = (reserva, emailEstudiante, sede, tipoClase) => {
   const fechaFormateada = new Date(reserva.fecha_inicio).toLocaleDateString('es-CL', {
@@ -185,11 +183,11 @@ const enviarConfirmacion = (reserva, emailEstudiante, sede, tipoClase) => {
     </p>
   `;
 
-  // Fire-and-forget: no bloqueamos la API
+
   enviarEmail(emailEstudiante, subject, emailWrapper(contenido)).catch(() => {});
 };
 
-//  Enviar notificación de cancelación
+// Enviar notificacion de cancelacion
 
 const enviarCancelacion = (reserva, emailEstudiante, sede, tipoClase) => {
   const fechaFormateada = new Date(reserva.fecha_inicio).toLocaleDateString('es-CL', {
@@ -215,7 +213,7 @@ const enviarCancelacion = (reserva, emailEstudiante, sede, tipoClase) => {
   enviarEmail(emailEstudiante, subject, emailWrapper(contenido)).catch(() => {});
 };
 
-//  Enviar recordatorio (1 hora antes de la clase)
+// Enviar recordatorio (1 hora antes de la clase)
 const enviarRecordatorio = (reserva, emailEstudiante, sede, tipoClase) => {
   const horaInicio = new Date(reserva.fecha_inicio).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
   const fechaFormateada = new Date(reserva.fecha_inicio).toLocaleDateString('es-CL', {
@@ -250,7 +248,7 @@ const enviarRecordatorio = (reserva, emailEstudiante, sede, tipoClase) => {
   enviarEmail(emailEstudiante, subject, emailWrapper(contenido)).catch(() => {});
 };
 
-//  Enviar notificación de modificación de reserva
+// Enviar notificacion de modificacion de reserva
 const enviarModificacion = (reserva, emailEstudiante, sede, tipoClase) => {
   const fechaFormateada = new Date(reserva.fecha_inicio).toLocaleDateString('es-CL', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'

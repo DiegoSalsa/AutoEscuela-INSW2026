@@ -1,4 +1,4 @@
-// Helper — Lanzar errores HTTP con código de estado
+// Lanzar errores HTTP con codigo de estado personalizado
 const httpError = (mensaje, status, extra = {}) => {
   const error = new Error(mensaje);
   error.status = status;

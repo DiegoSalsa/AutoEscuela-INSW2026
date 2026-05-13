@@ -1,7 +1,7 @@
-// src/service/reservas.Service.js
+
 const API_URL = 'http://localhost:3000/api';
 
-// Helper genérico para hacer peticiones al backend
+// Helper para hacer peticiones al backend
 async function fetchAPI(endpoint, options = {}) {
   const url = `${API_URL}${endpoint}`;
 
@@ -65,7 +65,7 @@ export async function crearReserva(reservaData, idempotencyKey) {
   });
 }
 
-// ── Recursos para el selector dinámico ──────────────────────────────────────
+// Recursos para el selector de reservas
 
 export async function getSedes() {
   return fetchAPI('/reservas/sedes');
@@ -86,7 +86,7 @@ export async function getVehiculos(sedeId) {
   return fetchAPI(`/reservas/vehiculos${query}`);
 }
 
-// ── CRUD de reservas ─────────────────────────────────────────────────────────
+// CRUD de reservas
 
 export async function getReservas(filtros = {}) {
   const query = new URLSearchParams();

@@ -2,13 +2,15 @@ const { AppDataSource } = require('../db/data-source');
 const { httpError } = require('../helpers/error.helper');
 const { aplicarFiltros } = require('../helpers/db.helper');
 
-// Tiempo mínimo de traslado entre sedes (en minutos)
+// Tiempo minimo de traslado entre sedes (en minutos)
+// Evita que un vehiculo se "teletransporte" de una sede a otra sin tiempo real
 const TIEMPO_TRASLADO_MIN = parseInt(process.env.TIEMPO_TRASLADO_MIN, 10) || 60;
 
 
-// Valida la restricción de traslado vehicular (tiempo mínimo entre sedes)
+// Valida que un vehiculo tenga tiempo suficiente para trasladarse entre sedes
+// Revisa la reserva anterior y posterior y compara las sedes
 const validarTrasladoVehicular = async (repoReserva, vehiculoId, sedeId, fechaInicio, fechaFin) => {
-  // Buscar la reserva inmediatamente ANTERIOR del vehículo
+  // Buscar la reserva anterior mas cercana del vehiculo
   const anterior = await repoReserva.createQueryBuilder('r')
     .where('r.vehiculo_id = :vehiculoId', { vehiculoId })
     .andWhere("r.estado IN ('confirmada', 'en_progreso', 'proxima')")
@@ -30,7 +32,7 @@ const validarTrasladoVehicular = async (repoReserva, vehiculoId, sedeId, fechaIn
     }
   }
 
-  // Buscar la reserva inmediatamente POSTERIOR del vehículo
+  // Buscar la reserva posterior mas cercana del vehiculo
   const posterior = await repoReserva.createQueryBuilder('r')
     .where('r.vehiculo_id = :vehiculoId', { vehiculoId })
     .andWhere("r.estado IN ('confirmada', 'en_progreso', 'proxima')")
@@ -53,7 +55,9 @@ const validarTrasladoVehicular = async (repoReserva, vehiculoId, sedeId, fechaIn
   }
 };
 
-//Crea una reserva utilizando una transacción SERIALIZABLE para evitar condiciones de carrera.
+// Crea una reserva dentro de una transaccion SERIALIZABLE
+// Este nivel de aislamiento evita condiciones de carrera: si dos usuarios
+// intentan reservar el mismo horario, PostgreSQL aborta una (error 40001)
 const crearReservaTransaccional = async (reservaData) => {
   const { estudianteId, instructorId, vehiculoId, sedeId, tipoClaseId, fechaInicio, fechaFin } = reservaData;
 
@@ -64,7 +68,7 @@ const crearReservaTransaccional = async (reservaData) => {
       const repoReserva  = manager.getRepository('Reserva');
       const repoTipoClase = manager.getRepository('TipoClase');
 
-      //  validar estudiante, instructor y vehículo en paralelo
+      // Validar que los 4 recursos existan, esten activos y pertenezcan a la sede
       const [estudiante, instructor, vehiculo, tipoClase] = await Promise.all([
         repoUsuario.findOne({
           where: { id: estudianteId, rol: 'estudiante', estado: 'activo', sede_id: sedeId },
@@ -85,10 +89,11 @@ const crearReservaTransaccional = async (reservaData) => {
       if (!vehiculo)   throw httpError('El vehículo no existe, no está disponible o no pertenece a esta sede.', 404);
       if (!tipoClase)  throw httpError('El tipo de clase no existe.', 404);
 
-      // restricción de traslado vehicular (anti-teletransportación)
+      // Validar que el vehiculo no se teletransporte entre sedes
       await validarTrasladoVehicular(repoReserva, vehiculoId, sedeId, fechaInicio, fechaFin);
 
-      // verificar conflictos de horario con OVERLAPS
+      // Verificar conflictos de horario con OVERLAPS de PostgreSQL
+      // Se suma un buffer de 15 min al final para limpieza del vehiculo
       const conflicto = await repoReserva.createQueryBuilder('r')
         .where("r.estado IN ('confirmada', 'en_progreso', 'proxima')")
         .andWhere(
@@ -108,7 +113,7 @@ const crearReservaTransaccional = async (reservaData) => {
         );
       }
 
-      // 5. insertar reserva
+      // Insertar la reserva
       return repoReserva.save(
         repoReserva.create({
           estudiante_id: estudianteId,
@@ -123,7 +128,7 @@ const crearReservaTransaccional = async (reservaData) => {
       );
     });
   } catch (error) {
-    // Error de serialización de PostgreSQL (condición de carrera detectada)
+    // Error 40001 = serializacion fallida (condicion de carrera detectada por PostgreSQL)
     if (error.code === '40001' || error.driverError?.code === '40001') {
       throw httpError('Lo sentimos, alguien acaba de tomar este cupo. Por favor elige otro horario en el calendario', 409);
     }
@@ -131,7 +136,8 @@ const crearReservaTransaccional = async (reservaData) => {
   }
 };
 
-// Obtiene reservas aplicando filtros dinámicos.
+// Obtiene reservas con filtros dinamicos (sede, instructor, vehiculo, estudiante, fechas)
+// Hace JOIN con las tablas relacionadas para devolver nombres en vez de solo IDs
 const obtenerReservas = async (filtros) => {
   const qb = AppDataSource.getRepository('Reserva').createQueryBuilder('r')
     .select([
@@ -163,7 +169,7 @@ const obtenerReservas = async (filtros) => {
   if (filtros.fechaInicio) qb.andWhere('r.fecha_inicio >= :fechaInicio', { fechaInicio: filtros.fechaInicio });
   if (filtros.fechaFin)    qb.andWhere('r.fecha_fin <= :fechaFin',       { fechaFin: filtros.fechaFin });
 
-  // filtros de entidad (reutilizables)
+  // Aplicar filtros de entidad con el helper reutilizable
   aplicarFiltros(qb, filtros, {
     sedeId:       'r.sede_id',
     instructorId: 'r.instructor_id',
@@ -174,7 +180,8 @@ const obtenerReservas = async (filtros) => {
   return qb.orderBy('r.fecha_inicio', 'ASC').getRawMany();
 };
 
-//Obtiene horarios actualmente ocupados.
+// Obtiene los horarios ocupados para pintar el calendario
+// Solo devuelve ocupaciones de los recursos seleccionados
 const obtenerHorariosOcupados = async (filtros) => {
   const qb = AppDataSource.getRepository('Reserva').createQueryBuilder('r')
     .select([
@@ -190,10 +197,9 @@ const obtenerHorariosOcupados = async (filtros) => {
   if (filtros.fechaInicio) qb.andWhere('r.fecha_inicio >= :fechaInicio', { fechaInicio: filtros.fechaInicio });
   if (filtros.fechaFin)    qb.andWhere('r.fecha_fin <= :fechaFin',       { fechaFin: filtros.fechaFin });
 
-  // Siempre aplicamos la sede
   if (filtros.sedeId) qb.andWhere('r.sede_id = :sedeId', { sedeId: filtros.sedeId });
 
-  // Si hay recursos seleccionados, buscamos si ALGUNO de ellos está ocupado en ese horario
+  // Construir condiciones OR para los recursos seleccionados
   const condicionesRecursos = [];
   const paramsRecursos = {};
   
@@ -211,19 +217,17 @@ const obtenerHorariosOcupados = async (filtros) => {
   }
 
   if (condicionesRecursos.length > 0) {
-    // Si hay recursos, solo traemos las reservas donde ESTOS recursos estén involucrados (OR)
     qb.andWhere(`(${condicionesRecursos.join(' OR ')})`, paramsRecursos);
   } else {
-    // Si no se ha seleccionado ningún recurso (ni instructor, ni vehículo, ni estudiante),
-    // devolvemos un arreglo vacío para no bloquear TODO el calendario de la sede.
-    // El calendario solo mostrará ocupaciones relativas a los recursos que el usuario escoja.
+    // Sin recursos seleccionados no se puede determinar ocupacion
     return [];
   }
 
   return qb.getRawMany();
 };
 
-// Suspende (cambia a estado pendiente) reservas futuras de un vehículo específico.
+// Suspende reservas futuras de un vehiculo (pasa de confirmada a pendiente)
+// Se usa cuando un vehiculo entra a mantenimiento para liberar su agenda
 const suspenderReservasVehiculo = async (vehiculoId, manager) => {
   const repo = manager
     ? manager.getRepository('Reserva')
@@ -240,10 +244,9 @@ const suspenderReservasVehiculo = async (vehiculoId, manager) => {
   return resultado.affected || 0;
 };
 
-// Valida que el DÍA de la clase esté a al menos 2 días calendario de diferencia
-// (es decir, hoy debe ser como máximo el día D-3, donde D es el día de la clase).
-// Ejemplo: clase el 10/05 → puede modificar hasta el 7/05 inclusive.
-//          El 8/05 y el 9/05 quedan bloqueados sin importar la hora.
+// Valida la regla de 48 horas: solo se puede modificar/cancelar una reserva
+// si faltan al menos 3 dias calendario para la clase
+// Ejemplo: clase el 10/05 -> se puede modificar hasta el 07/05 inclusive
 const validar48Horas = (fechaInicio) => {
   const hoy      = new Date();
   const diaHoy   = new Date(hoy.getFullYear(),   hoy.getMonth(),   hoy.getDate());        // medianoche hoy
@@ -262,7 +265,8 @@ const validar48Horas = (fechaInicio) => {
   }
 };
 
-// Actualiza una reserva existente (nuevos recursos u horario)
+// Actualiza una reserva existente dentro de una transaccion SERIALIZABLE
+// Valida los nuevos recursos, verifica conflictos y aplica la regla de 48h
 const actualizarReservaTransaccional = async (id, data, esAdmin = false) => {
   const { estudianteId, instructorId, vehiculoId, sedeId, tipoClaseId, fechaInicio, fechaFin } = data;
 
@@ -273,17 +277,17 @@ const actualizarReservaTransaccional = async (id, data, esAdmin = false) => {
       const repoVehiculo = manager.getRepository('Vehiculo');
       const repoTipoClase = manager.getRepository('TipoClase');
 
-      // Buscar la reserva original
+
       const reserva = await repoReserva.findOne({ where: { id } });
       if (!reserva) throw httpError('Reserva no encontrada.', 404);
       if (['cancelada', 'expirada'].includes(reserva.estado)) {
         throw httpError('No se puede modificar una reserva cancelada o expirada.', 409);
       }
 
-      // Regla de 48h (solo para no-admins)
+      // Solo los no-admins estan sujetos a la regla de 48 horas
       if (!esAdmin) validar48Horas(reserva.fecha_inicio);
 
-      // Validar nuevos recursos
+
       const [estudiante, instructor, vehiculo, tipoClase] = await Promise.all([
         repoUsuario.findOne({ where: { id: estudianteId, rol: 'estudiante', estado: 'activo', sede_id: sedeId } }),
         repoUsuario.findOne({ where: { id: instructorId, rol: 'instructor', estado: 'activo', sede_id: sedeId } }),
@@ -295,7 +299,7 @@ const actualizarReservaTransaccional = async (id, data, esAdmin = false) => {
       if (!vehiculo)   throw httpError('El vehículo no existe o no pertenece a esta sede.', 404);
       if (!tipoClase)  throw httpError('El tipo de clase no existe.', 404);
 
-      // Verificar conflictos excluyendo la misma reserva
+      // Verificar conflictos excluyendo la misma reserva (para no chocar consigo misma)
       const conflicto = await repoReserva.createQueryBuilder('r')
         .where('r.id != :id', { id })
         .andWhere("r.estado IN ('confirmada', 'en_progreso', 'proxima')")
@@ -313,7 +317,7 @@ const actualizarReservaTransaccional = async (id, data, esAdmin = false) => {
         throw httpError('Conflicto de horario: uno de los recursos ya tiene una reserva en ese lapso.', 409);
       }
 
-      // Aplicar cambios
+
       repoReserva.merge(reserva, {
         estudiante_id: estudianteId,
         instructor_id: instructorId,
@@ -335,6 +339,7 @@ const actualizarReservaTransaccional = async (id, data, esAdmin = false) => {
 };
 
 // Cancela una reserva (cambia estado a 'cancelada')
+// Los no-admins estan sujetos a la regla de 48 horas
 const cancelarReserva = async (id, esAdmin = false) => {
   const repo = AppDataSource.getRepository('Reserva');
   const reserva = await repo.findOne({ where: { id } });
@@ -344,14 +349,13 @@ const cancelarReserva = async (id, esAdmin = false) => {
     throw httpError('La reserva ya está cancelada o expirada.', 409);
   }
 
-  // Regla de 48h solo para no-admins
   if (!esAdmin) validar48Horas(reserva.fecha_inicio);
 
   reserva.estado = 'cancelada';
   return repo.save(reserva);
 };
 
-// Obtiene una reserva completa por ID (para prellenar formulario de edición)
+// Obtiene una reserva por ID (para prellenar el formulario de edicion)
 const obtenerReservaPorId = async (id) => {
   const qb = AppDataSource.getRepository('Reserva').createQueryBuilder('r')
     .select([

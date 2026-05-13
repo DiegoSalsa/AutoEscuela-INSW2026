@@ -3,11 +3,11 @@ const { AppDataSource } = require('../db/data-source');
 const { emitirEventoReserva } = require('../services/socket');
 const { enviarRecordatorio } = require('../services/notificaciones.Service');
 
-//Iniciar todas las tareas programadas
+// Iniciar tareas programadas (cron jobs) del sistema de reservas
 const iniciarScheduler = () => {
   console.log('Scheduler iniciado');
 
-  // Cada 5 minutos: expirar reservas pendientes cuya fecha de clase ya pasó
+  // Cada 5 min: expirar reservas pendientes cuya fecha ya paso
   cron.schedule('*/5 * * * *', async () => {
     try {
       const repo = AppDataSource.getRepository('Reserva');
@@ -29,7 +29,7 @@ const iniciarScheduler = () => {
     }
   });
 
-  // Cada 1 minuto: activar reservas que ya comenzaron
+  // Cada 1 min: activar reservas confirmadas que ya comenzaron -> en_progreso
   cron.schedule('* * * * *', async () => {
     try {
       const repo = AppDataSource.getRepository('Reserva');
@@ -51,7 +51,7 @@ const iniciarScheduler = () => {
     }
   });
 
-  // Cada 1 minuto: finalizar reservas completadas
+  // Cada 1 min: finalizar reservas en progreso que ya terminaron -> completada
   cron.schedule('* * * * *', async () => {
     try {
       const repo = AppDataSource.getRepository('Reserva');
@@ -73,7 +73,7 @@ const iniciarScheduler = () => {
     }
   });
 
-  // Cada 10 minutos: enviar recordatorios (1 hora antes)
+  // Cada 10 min: enviar email de recordatorio 1 hora antes de la clase
   cron.schedule('*/10 * * * *', async () => {
     try {
       const repo = AppDataSource.getRepository('Reserva');
