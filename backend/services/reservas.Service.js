@@ -68,16 +68,13 @@ const crearReservaTransaccional = async (reservaData) => {
       const repoReserva  = manager.getRepository('Reserva');
       const repoTipoClase = manager.getRepository('TipoClase');
 
-      // Validar que los 4 recursos existan, esten activos y pertenezcan a la sede
-      const [estudiante, instructor, vehiculo, tipoClase] = await Promise.all([
+      // Validar que los recursos existan, esten activos y pertenezcan a la sede
+      const [estudiante, instructor, tipoClase] = await Promise.all([
         repoUsuario.findOne({
           where: { id: estudianteId, rol: 'estudiante', estado: 'activo', sede_id: sedeId },
         }),
         repoUsuario.findOne({
           where: { id: instructorId, rol: 'instructor', estado: 'activo', sede_id: sedeId },
-        }),
-        repoVehiculo.findOne({
-          where: { id: vehiculoId, sede_id: sedeId, estado: 'disponible' },
         }),
         repoTipoClase.findOne({
           where: { id: tipoClaseId },
@@ -86,19 +83,32 @@ const crearReservaTransaccional = async (reservaData) => {
 
       if (!estudiante) throw httpError('El estudiante no existe, no está activo o no pertenece a esta sede.', 404);
       if (!instructor) throw httpError('El instructor no existe, no está activo o no pertenece a esta sede.', 404);
-      if (!vehiculo)   throw httpError('El vehículo no existe, no está disponible o no pertenece a esta sede.', 404);
       if (!tipoClase)  throw httpError('El tipo de clase no existe.', 404);
 
-      // Validar que el vehiculo no se teletransporte entre sedes
-      await validarTrasladoVehicular(repoReserva, vehiculoId, sedeId, fechaInicio, fechaFin);
+      // Validar vehiculo solo si la clase lo requiere (no aplica para clases teoricas)
+      let vehiculo = null;
+      if (vehiculoId) {
+        vehiculo = await repoVehiculo.findOne({
+          where: { id: vehiculoId, sede_id: sedeId, estado: 'disponible' },
+        });
+        if (!vehiculo) throw httpError('El vehículo no existe, no está disponible o no pertenece a esta sede.', 404);
+        await validarTrasladoVehicular(repoReserva, vehiculoId, sedeId, fechaInicio, fechaFin);
+      }
 
       // Verificar conflictos de horario con OVERLAPS de PostgreSQL
       // Se suma un buffer de 15 min al final para limpieza del vehiculo
+      const condicionesConflicto = ['r.instructor_id = :instructorId', 'r.estudiante_id = :estudianteId'];
+      const paramsConflicto = { instructorId, estudianteId, fechaInicio, fechaFin };
+      if (vehiculoId) {
+        condicionesConflicto.push('r.vehiculo_id = :vehiculoId');
+        paramsConflicto.vehiculoId = vehiculoId;
+      }
+
       const conflicto = await repoReserva.createQueryBuilder('r')
         .where("r.estado IN ('confirmada', 'en_progreso', 'proxima')")
         .andWhere(
-          '(r.instructor_id = :instructorId OR r.vehiculo_id = :vehiculoId OR r.estudiante_id = :estudianteId)',
-          { instructorId, vehiculoId, estudianteId }
+          `(${condicionesConflicto.join(' OR ')})`,
+          paramsConflicto
         )
         .andWhere(
           '(r.fecha_inicio, r.fecha_fin) OVERLAPS (:fechaInicio::timestamp, (:fechaFin::timestamp + INTERVAL \'15 minutes\'))',
@@ -118,7 +128,7 @@ const crearReservaTransaccional = async (reservaData) => {
         repoReserva.create({
           estudiante_id: estudianteId,
           instructor_id: instructorId,
-          vehiculo_id:   vehiculoId,
+          vehiculo_id:   vehiculoId || null,
           sede_id:       sedeId,
           tipo_clase_id: tipoClaseId,
           fecha_inicio:  fechaInicio,
@@ -288,24 +298,35 @@ const actualizarReservaTransaccional = async (id, data, esAdmin = false) => {
       if (!esAdmin) validar48Horas(reserva.fecha_inicio);
 
 
-      const [estudiante, instructor, vehiculo, tipoClase] = await Promise.all([
+      const [estudiante, instructor, tipoClase] = await Promise.all([
         repoUsuario.findOne({ where: { id: estudianteId, rol: 'estudiante', estado: 'activo', sede_id: sedeId } }),
         repoUsuario.findOne({ where: { id: instructorId, rol: 'instructor', estado: 'activo', sede_id: sedeId } }),
-        repoVehiculo.findOne({ where: { id: vehiculoId, sede_id: sedeId } }),
         repoTipoClase.findOne({ where: { id: tipoClaseId } }),
       ]);
       if (!estudiante) throw httpError('El estudiante no existe o no pertenece a esta sede.', 404);
       if (!instructor) throw httpError('El instructor no existe o no pertenece a esta sede.', 404);
-      if (!vehiculo)   throw httpError('El vehículo no existe o no pertenece a esta sede.', 404);
       if (!tipoClase)  throw httpError('El tipo de clase no existe.', 404);
 
-      // Verificar conflictos excluyendo la misma reserva (para no chocar consigo misma)
+      // Validar vehiculo solo si la clase lo requiere
+      if (vehiculoId) {
+        const vehiculo = await repoVehiculo.findOne({ where: { id: vehiculoId, sede_id: sedeId } });
+        if (!vehiculo) throw httpError('El vehículo no existe o no pertenece a esta sede.', 404);
+      }
+
+      // Verificar conflictos excluyendo la misma reserva
+      const condicionesConflicto = ['r.instructor_id = :instructorId', 'r.estudiante_id = :estudianteId'];
+      const paramsConflicto = { id, instructorId, estudianteId, fechaInicio, fechaFin };
+      if (vehiculoId) {
+        condicionesConflicto.push('r.vehiculo_id = :vehiculoId');
+        paramsConflicto.vehiculoId = vehiculoId;
+      }
+
       const conflicto = await repoReserva.createQueryBuilder('r')
         .where('r.id != :id', { id })
         .andWhere("r.estado IN ('confirmada', 'en_progreso', 'proxima')")
         .andWhere(
-          '(r.instructor_id = :instructorId OR r.vehiculo_id = :vehiculoId OR r.estudiante_id = :estudianteId)',
-          { instructorId, vehiculoId, estudianteId }
+          `(${condicionesConflicto.join(' OR ')})`,
+          paramsConflicto
         )
         .andWhere(
           "(r.fecha_inicio, r.fecha_fin) OVERLAPS (:fechaInicio::timestamp, (:fechaFin::timestamp + INTERVAL '15 minutes'))",
@@ -321,7 +342,7 @@ const actualizarReservaTransaccional = async (id, data, esAdmin = false) => {
       repoReserva.merge(reserva, {
         estudiante_id: estudianteId,
         instructor_id: instructorId,
-        vehiculo_id:   vehiculoId,
+        vehiculo_id:   vehiculoId || null,
         sede_id:       sedeId,
         tipo_clase_id: tipoClaseId,
         fecha_inicio:  fechaInicio,

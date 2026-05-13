@@ -10,7 +10,7 @@ const Reserva = new EntitySchema({
     fecha_fin: { type: 'timestamp' },
     estudiante_id: { type: 'int' },
     instructor_id: { type: 'int' },
-    vehiculo_id: { type: 'int' },
+    vehiculo_id: { type: 'int', nullable: true },
     sede_id: { type: 'int' },
     tipo_clase_id: { type: 'int', nullable: true },
     created_at: { type: 'timestamp', createDate: true },

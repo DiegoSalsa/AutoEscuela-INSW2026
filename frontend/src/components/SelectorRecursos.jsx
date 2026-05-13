@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getSedes, getEstudiantes, getInstructores, getVehiculos } from '../service/reservas.Service';
 import './SelectorRecursos.css';
 
-export default function SelectorRecursos({ selecciones, onSelect }) {
+export default function SelectorRecursos({ selecciones, onSelect, requiereVehiculo = true }) {
   const [sedes, setSedes] = useState([]);
   const [estudiantes, setEstudiantes] = useState([]);
   const [instructores, setInstructores] = useState([]);
@@ -83,13 +83,15 @@ export default function SelectorRecursos({ selecciones, onSelect }) {
         </select>
       </div>
 
-      <div className="form-group">
-        <label>Vehículo</label>
-        <select name="vehiculoId" value={selecciones.vehiculoId || ''} onChange={handleChange} disabled={!selecciones.sedeId}>
-          <option value="">Seleccione Vehículo...</option>
-          {vehiculos.map(v => <option key={v.id} value={v.id}>{v.patente} — {v.modelo}</option>)}
-        </select>
-      </div>
+      {requiereVehiculo && (
+        <div className="form-group">
+          <label>Vehículo</label>
+          <select name="vehiculoId" value={selecciones.vehiculoId || ''} onChange={handleChange} disabled={!selecciones.sedeId}>
+            <option value="">Seleccione Vehículo...</option>
+            {vehiculos.map(v => <option key={v.id} value={v.id}>{v.patente} — {v.modelo}</option>)}
+          </select>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,13 +2,14 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import './PanelDetalles.css';
 
-export default function PanelDetalles({ selecciones, tipoClaseId, fecha, hora, isLoading, error, exito, onConfirmar }) {
+export default function PanelDetalles({ selecciones, tipoClaseId, fecha, hora, isLoading, error, exito, onConfirmar, modoEdicion, requiereVehiculo = true }) {
   
   const handleConfirm = () => {
     onConfirmar();
   };
 
-  const isReady = selecciones.sedeId && selecciones.estudianteId && selecciones.instructorId && selecciones.vehiculoId && tipoClaseId && fecha && hora;
+  const vehiculoOk = requiereVehiculo ? !!selecciones.vehiculoId : true;
+  const isReady = selecciones.sedeId && selecciones.estudianteId && selecciones.instructorId && vehiculoOk && tipoClaseId && fecha && hora;
 
   return (
     <div className="panel-detalles">

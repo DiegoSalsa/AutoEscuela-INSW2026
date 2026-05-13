@@ -27,12 +27,11 @@ const crearReservaSchema = Joi.object({
       'number.positive': 'instructorId debe ser positivo',
       'any.required': 'instructorId es obligatorio'
     }),
-  vehiculoId: Joi.number().integer().positive().required()
+  vehiculoId: Joi.number().integer().positive().allow(null).optional()
     .messages({
       'number.base': 'vehiculoId debe ser un número',
       'number.integer': 'vehiculoId debe ser un entero',
       'number.positive': 'vehiculoId debe ser positivo',
-      'any.required': 'vehiculoId es obligatorio'
     }),
   sedeId: Joi.number().integer().positive().required()
     .messages({

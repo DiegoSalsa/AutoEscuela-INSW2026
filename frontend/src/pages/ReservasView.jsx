@@ -141,26 +141,21 @@ export default function ReservasView() {
     const fechaFin    = `${dateStr}T${hora.horaFin}:00`;
 
     try {
+      const payload = {
+        estudianteId: selecciones.estudianteId,
+        instructorId: selecciones.instructorId,
+        sedeId:       selecciones.sedeId,
+        tipoClaseId,
+        fechaInicio,
+        fechaFin,
+      };
+      // Solo incluir vehiculoId si la clase lo requiere
+      if (selecciones.vehiculoId) payload.vehiculoId = selecciones.vehiculoId;
+
       if (editandoId) {
-        await actualizarReserva(editandoId, {
-          estudianteId: selecciones.estudianteId,
-          instructorId: selecciones.instructorId,
-          vehiculoId:   selecciones.vehiculoId,
-          sedeId:       selecciones.sedeId,
-          tipoClaseId,
-          fechaInicio,
-          fechaFin,
-        }, usuarioFantasma.rol);
+        await actualizarReserva(editandoId, payload, usuarioFantasma.rol);
       } else {
-        await crearReserva({
-          estudianteId: selecciones.estudianteId,
-          instructorId: selecciones.instructorId,
-          vehiculoId:   selecciones.vehiculoId,
-          sedeId:       selecciones.sedeId,
-          tipoClaseId,
-          fechaInicio,
-          fechaFin,
-        }, idempotencyKey);
+        await crearReserva(payload, idempotencyKey);
       }
       setExito(true);
       setHora(null);
@@ -246,14 +241,22 @@ export default function ReservasView() {
             </div>
           )}
 
+          <SelectorTipoClase
+            tipoSeleccionado={tipoClaseId}
+            onSelect={(id) => {
+              setTipoClaseId(id);
+              setExito(false);
+              // Si elige clase teorica, limpiar vehiculo
+              if (id === 1) {
+                setSelecciones(prev => ({ ...prev, vehiculoId: null }));
+              }
+            }}
+          />
+
           <SelectorRecursos
             selecciones={selecciones}
             onSelect={(nuevas) => { setSelecciones(nuevas); setExito(false); }}
-          />
-
-          <SelectorTipoClase
-            tipoSeleccionado={tipoClaseId}
-            onSelect={(id) => { setTipoClaseId(id); setExito(false); }}
+            requiereVehiculo={tipoClaseId !== 1}
           />
 
           <div className="rv-calendar-row">
@@ -282,6 +285,7 @@ export default function ReservasView() {
               exito={exito}
               onConfirmar={handleConfirmar}
               modoEdicion={!!editandoId}
+              requiereVehiculo={tipoClaseId !== 1}
             />
           </div>
         </div>
