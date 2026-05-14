@@ -1,14 +1,14 @@
 // Barrel file — exporta todas las entidades del proyecto
-const Sede = require('./Sede');
-const Usuario = require('./Usuario');
-const Vehiculo = require('./Vehiculo');
-const TipoClase = require('./TipoClase');
-const Reserva = require('./Reserva');
-const MetaKPI = require('./MetaKPI');
-const ModuloTeorico = require('./ModuloTeorico');
-const EstudianteModuloProgreso = require('./EstudianteModuloProgreso');
-const ResultadoExamen = require('./ResultadoExamen');
-const Pago = require('./Pago');
+const Sede = require('./Sede.entity');
+const Usuario = require('./Usuario.entity');
+const Vehiculo = require('./Vehiculo.entity');
+const TipoClase = require('./TipoClase.entity');
+const Reserva = require('./Reserva.entity');
+const MetaKPI = require('./MetaKPI.entity');
+const ModuloTeorico = require('./ModuloTeorico.entity');
+const EstudianteModuloProgreso = require('./EstudianteModuloProgreso.entity');
+const ResultadoExamen = require('./ResultadoExamen.entity');
+const Pago = require('./Pago.entity');
 
 module.exports = {
   Sede,
