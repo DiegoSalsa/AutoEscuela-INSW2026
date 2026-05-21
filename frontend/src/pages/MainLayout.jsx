@@ -3,6 +3,7 @@ import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import DashboardView from './DashboardView';
 import MetasView from './MetasView';
+import ReservasView from './ReservasView';
 import Proximamente from '../components/Proximamente';
 
 export default function MainLayout() {
@@ -23,6 +24,8 @@ export default function MainLayout() {
         return <DashboardView sedeActiva={sedeActiva} />;
       case 'metas':
         return <MetasView sedeActiva={sedeActiva} />;
+      case 'agenda':
+        return <ReservasView />;
       default:
         return <Proximamente />;
     }
@@ -35,8 +38,10 @@ export default function MainLayout() {
 
       {/* Contenido Principal */}
       <div className="flex flex-col flex-1 overflow-hidden">
-        {/* TopBar */}
-        <TopBar sedeActiva={sedeActiva} onSetSede={handleSetSede} />
+        {/* TopBar — oculto en la vista de agenda (tiene su propio header) */}
+        {vistaActual !== 'agenda' && (
+          <TopBar sedeActiva={sedeActiva} onSetSede={handleSetSede} />
+        )}
 
         {/* Área de la Vista Actual */}
         <main className="flex-1 overflow-y-auto">
