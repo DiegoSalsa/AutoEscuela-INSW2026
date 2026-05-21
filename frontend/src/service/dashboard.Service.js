@@ -1,4 +1,5 @@
-const API_BASE = '/api/dashboard';
+const API_URL = import.meta.env.VITE_BASE_URL;
+const API_BASE = API_URL || '/api/dashboard';
 
 function buildSedeParam(sedeId) {
   // Backend expects no sedeId param (or null) for "all sedes"
