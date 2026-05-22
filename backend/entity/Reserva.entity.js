@@ -15,7 +15,7 @@ const Reserva = new EntitySchema({
     tipo_clase_id: { type: 'int', nullable: true },
     created_at: { nullable: true, type: 'timestamp', createDate: true },
   },
-  relations: { nullable: true,
+  relations: {
     estudiante: {
       type: 'many-to-one',
       target: 'Usuario',

@@ -11,7 +11,7 @@ const Pago = new EntitySchema({
     fecha: { nullable: true, type: 'date' },
     sede_id: { nullable: true, type: 'int' },
   },
-  relations: { nullable: true,
+  relations: {
     estudiante: { type: 'many-to-one', target: 'Usuario', joinColumn: { name: 'estudiante_id' , nullable: true } },
     sede: { nullable: true, type: 'many-to-one', target: 'Sede', joinColumn: { name: 'sede_id' } },
   },

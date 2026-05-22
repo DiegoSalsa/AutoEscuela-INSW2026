@@ -10,7 +10,7 @@ const Vehiculo = new EntitySchema({
     estado: { nullable: true, type: 'varchar', length: 50, default: 'disponible' },
     sede_id: { nullable: true, type: 'int' },
   },
-  relations: { nullable: true,
+  relations: {
     sede: {
       type: 'many-to-one',
       target: 'Sede',

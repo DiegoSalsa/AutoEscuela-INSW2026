@@ -15,7 +15,7 @@ const Usuario = new EntitySchema({
     created_at: { nullable: true, type: 'timestamp', createDate: true },
     updated_at: { nullable: true, type: 'timestamp', updateDate: true },
   },
-  relations: { nullable: true,
+  relations: {
     sede: {
       type: 'many-to-one',
       target: 'Sede',

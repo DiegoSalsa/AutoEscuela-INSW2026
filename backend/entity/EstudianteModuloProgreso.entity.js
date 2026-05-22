@@ -13,7 +13,7 @@ const EstudianteModuloProgreso = new EntitySchema({
     created_at: { nullable: true, type: 'timestamp', createDate: true },
     updated_at: { nullable: true, type: 'timestamp', updateDate: true },
   },
-  relations: { nullable: true,
+  relations: {
     estudiante: {
       type: 'many-to-one',
       target: 'Usuario',

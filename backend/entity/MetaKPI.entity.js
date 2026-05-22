@@ -33,7 +33,7 @@ const MetaKPI = new EntitySchema({
       updateDate: true,
     },
   },
-  relations: { nullable: true,
+  relations: {
     sede: {
       type: 'many-to-one',
       target: 'Sede',
