@@ -5,15 +5,15 @@ const ResultadoExamen = new EntitySchema({
   tableName: 'resultados_examen',
   columns: {
     id:             { primary: true, type: 'int', generated: true },
-    estudiante_id:  { type: 'int' },
-    aprobado:       { type: 'boolean' },
-    tipo_examen:    { type: 'varchar', length: 30, default: 'practico' },
-    fecha:          { type: 'date' },
-    sede_id:        { type: 'int' },
+    estudiante_id:  { nullable: true, type: 'int' },
+    aprobado:       { nullable: true, type: 'boolean' },
+    tipo_examen:    { nullable: true, type: 'varchar', length: 30, default: 'practico' },
+    fecha:          { nullable: true, type: 'date' },
+    sede_id:        { nullable: true, type: 'int' },
   },
-  relations: {
-    estudiante: { type: 'many-to-one', target: 'Usuario', joinColumn: { name: 'estudiante_id' } },
-    sede:       { type: 'many-to-one', target: 'Sede', joinColumn: { name: 'sede_id' } },
+  relations: { nullable: true,
+    estudiante: { type: 'many-to-one', target: 'Usuario', joinColumn: { name: 'estudiante_id' , nullable: true } },
+    sede:       { nullable: true, type: 'many-to-one', target: 'Sede', joinColumn: { name: 'sede_id' } },
   },
 });
 
