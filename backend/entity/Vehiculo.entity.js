@@ -5,16 +5,16 @@ const Vehiculo = new EntitySchema({
   tableName: 'vehiculos',
   columns: {
     id: { primary: true, type: 'int', generated: true },
-    patente: { nullable: true, type: 'varchar', length: 20 },
-    modelo: { nullable: true, type: 'varchar', length: 255 },
-    estado: { nullable: true, type: 'varchar', length: 50, default: 'disponible' },
-    sede_id: { nullable: true, type: 'int' },
+    patente: { type: 'varchar', length: 20, nullable: true },
+    modelo: { type: 'varchar', length: 255, nullable: true },
+    estado: { type: 'varchar', length: 50, default: 'disponible', nullable: true },
+    sede_id: { type: 'int', nullable: true },
   },
   relations: {
     sede: {
       type: 'many-to-one',
       target: 'Sede',
-      joinColumn: { name: 'sede_id' , nullable: true },
+      joinColumn: { name: 'sede_id' },
     },
   },
 });

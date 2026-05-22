@@ -4,16 +4,24 @@ const ResultadoExamen = new EntitySchema({
   name: 'ResultadoExamen',
   tableName: 'resultados_examen',
   columns: {
-    id:             { primary: true, type: 'int', generated: true },
-    estudiante_id:  { nullable: true, type: 'int' },
-    aprobado:       { nullable: true, type: 'boolean' },
-    tipo_examen:    { nullable: true, type: 'varchar', length: 30, default: 'practico' },
-    fecha:          { nullable: true, type: 'date' },
-    sede_id:        { nullable: true, type: 'int' },
+    id: { primary: true, type: 'int', generated: true },
+    estudiante_id: { type: 'int', nullable: true },
+    aprobado: { type: 'boolean', nullable: true },
+    tipo_examen: { type: 'varchar', length: 30, default: 'practico', nullable: true },
+    fecha: { type: 'date', nullable: true },
+    sede_id: { type: 'int', nullable: true },
   },
   relations: {
-    estudiante: { type: 'many-to-one', target: 'Usuario', joinColumn: { name: 'estudiante_id' , nullable: true } },
-    sede:       { nullable: true, type: 'many-to-one', target: 'Sede', joinColumn: { name: 'sede_id' } },
+    estudiante: {
+      type: 'many-to-one',
+      target: 'Usuario',
+      joinColumn: { name: 'estudiante_id' },
+    },
+    sede: {
+      type: 'many-to-one',
+      target: 'Sede',
+      joinColumn: { name: 'sede_id' },
+    },
   },
 });
 

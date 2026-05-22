@@ -9,26 +9,29 @@ const MetaKPI = new EntitySchema({
       type: 'int',
       generated: true,
     },
-    metrica_nombre: { nullable: true,
+    metrica_nombre: {
       type: 'varchar',
       length: 120,
+      nullable: true,
     },
-    valor_esperado: { nullable: true,
+    valor_esperado: {
       type: 'int',
+      nullable: true,
     },
-    mes_anio: { nullable: true,
+    mes_anio: {
       type: 'varchar',
       length: 7,
+      nullable: true,
     },
     sede_id: {
       type: 'int',
       nullable: true,
     },
-    creado_en: { nullable: true,
+    creado_en: {
       type: 'timestamp',
       createDate: true,
     },
-    actualizado_en: { nullable: true,
+    actualizado_en: {
       type: 'timestamp',
       updateDate: true,
     },
@@ -37,8 +40,7 @@ const MetaKPI = new EntitySchema({
     sede: {
       type: 'many-to-one',
       target: 'Sede',
-      joinColumn: { name: 'sede_id' , nullable: true },
-      nullable: true,
+      joinColumn: { name: 'sede_id' },
     },
   },
 });
