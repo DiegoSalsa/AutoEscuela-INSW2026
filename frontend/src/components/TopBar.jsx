@@ -33,14 +33,7 @@ export default function TopBar({ sedeActiva, onSetSede }) {
 
       {/* Acciones / Usuario */}
       <div className="flex items-center justify-end space-x-6 w-1/4">
-        <button className="relative p-2 text-gray-400 hover:text-primary transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-          </svg>
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-tertiary rounded-full border-2 border-white"></span>
-        </button>
-        <div className="flex items-center space-x-3 border-l border-gray-200 pl-6 cursor-pointer">
+        <div className="flex items-center space-x-3 cursor-pointer">
           <div className="text-right hidden sm:block">
             <p className="text-sm font-semibold text-gray-800">Administrador</p>
             <p className="text-xs text-gray-500">AutoDrive Academy</p>
