@@ -5,7 +5,7 @@ const Sede = new EntitySchema({
   tableName: 'sedes',
   columns: {
     id: { primary: true, type: 'int', generated: true },
-    nombre: { type: 'varchar' },
+    nombre: { type: 'varchar', nullable: true },
     direccion: { type: 'varchar', nullable: true },
   },
 });
