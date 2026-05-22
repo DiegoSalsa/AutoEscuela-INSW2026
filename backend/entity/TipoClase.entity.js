@@ -8,7 +8,7 @@ const TipoClase = new EntitySchema({
     nombre: { type: 'varchar', length: 100 },
     descripcion: { type: 'varchar', length: 255, nullable: true },
     duracion_min: { type: 'int', default: 60 },
-    color: { type: 'varchar', length: 7, default: "'#2563eb'" },
+    color: { type: 'varchar', length: 7, default: () => "'#2563eb'" },
   },
 });
 
