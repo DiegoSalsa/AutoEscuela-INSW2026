@@ -5,9 +5,9 @@ const Vehiculo = new EntitySchema({
   tableName: 'vehiculos',
   columns: {
     id: { primary: true, type: 'int', generated: true },
-    patente: { type: 'varchar' },
-    modelo: { type: 'varchar' },
-    estado: { type: 'varchar', default: 'disponible' },
+    patente: { type: 'varchar', length: 20 },
+    modelo: { type: 'varchar', length: 255 },
+    estado: { type: 'varchar', length: 50, default: 'disponible' },
     sede_id: { type: 'int' },
   },
   relations: {

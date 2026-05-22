@@ -5,7 +5,7 @@ const Reserva = new EntitySchema({
   tableName: 'reservas',
   columns: {
     id: { primary: true, type: 'int', generated: true },
-    estado: { type: 'varchar', default: 'confirmada' },
+    estado: { type: 'varchar', length: 50, default: 'confirmada' },
     fecha_inicio: { type: 'timestamp' },
     fecha_fin: { type: 'timestamp' },
     estudiante_id: { type: 'int' },
