@@ -1,6 +1,5 @@
-
-const API_URL = import.meta.env.VITE_BASE_URL
-  ? `${import.meta.env.VITE_BASE_URL}/api`
+const API_URL = import.meta.env.VITE_BASE_URL 
+  ? import.meta.env.VITE_BASE_URL.replace(/\/$/, '') + '/api'
   : '/api';
 
 // Helper para hacer peticiones al backend
@@ -44,9 +43,9 @@ export async function getHorariosOcupados(fecha, sedeId, instructorId, vehiculoI
     si: sedeId,
   });
 
-  if (instructorId)  query.append('ii', instructorId);
-  if (vehiculoId)    query.append('vi', vehiculoId);
-  if (estudianteId)  query.append('ei', estudianteId);
+  if (instructorId) query.append('ii', instructorId);
+  if (vehiculoId) query.append('vi', vehiculoId);
+  if (estudianteId) query.append('ei', estudianteId);
 
   return fetchAPI(`/reservas/ocupados?${query.toString()}`);
 }
@@ -92,7 +91,7 @@ export async function getVehiculos(sedeId) {
 
 export async function getReservas(filtros = {}) {
   const query = new URLSearchParams();
-  if (filtros.sedeId)       query.append('s', filtros.sedeId);
+  if (filtros.sedeId) query.append('s', filtros.sedeId);
   if (filtros.estudianteId) query.append('e', filtros.estudianteId);
   const qs = query.toString();
   return fetchAPI(`/reservas${qs ? '?' + qs : ''}`);
