@@ -28,8 +28,8 @@ export default function BloqueHorarios({ fechaSeleccionada, horariosOcupados, ho
   const isBloqueOcupado = (bloque) => {
     if (!fechaSeleccionada) return true;
     
-    // Si la fecha seleccionada es hoy, bloquear horas pasadas
-    const now = new Date();
+    // Si la fecha seleccionada es hoy, bloquear horas pasadas (zona horaria Chile)
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' }));
     if (fechaSeleccionada.toDateString() === now.toDateString()) {
       const [horas] = bloque.horaInicio.split(':');
       if (parseInt(horas, 10) <= now.getHours()) return true;
@@ -37,8 +37,9 @@ export default function BloqueHorarios({ fechaSeleccionada, horariosOcupados, ho
 
     return horariosOcupados.some(res => {
       const reservaDate = new Date(res.fecha_inicio);
-      const reservaHour = reservaDate.getUTCHours().toString().padStart(2, '0');
-      const reservaMin = reservaDate.getUTCMinutes().toString().padStart(2, '0');
+      // Usar hora local de Chile, NO UTC
+      const reservaHour = reservaDate.getHours().toString().padStart(2, '0');
+      const reservaMin = reservaDate.getMinutes().toString().padStart(2, '0');
       const reservaHoraStr = `${reservaHour}:${reservaMin}`;
       return reservaHoraStr === bloque.horaInicio;
     });

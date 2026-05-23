@@ -1,3 +1,5 @@
+// Zona horaria: Santiago, Chile
+process.env.TZ = 'America/Santiago';
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
