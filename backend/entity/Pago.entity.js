@@ -5,15 +5,23 @@ const Pago = new EntitySchema({
   tableName: 'pagos',
   columns: {
     id: { primary: true, type: 'int', generated: true },
-    estudiante_id: { type: 'int' },
-    concepto: { type: 'varchar', length: 80 },
-    monto: { type: 'decimal', precision: 10, scale: 2 },
-    fecha: { type: 'date' },
-    sede_id: { type: 'int' },
+    estudiante_id: { type: 'int', nullable: true },
+    concepto: { type: 'varchar', length: 80, nullable: true },
+    monto: { type: 'decimal', precision: 10, scale: 2, nullable: true },
+    fecha: { type: 'date', nullable: true },
+    sede_id: { type: 'int', nullable: true },
   },
   relations: {
-    estudiante: { type: 'many-to-one', target: 'Usuario', joinColumn: { name: 'estudiante_id' } },
-    sede: { type: 'many-to-one', target: 'Sede', joinColumn: { name: 'sede_id' } },
+    estudiante: {
+      type: 'many-to-one',
+      target: 'Usuario',
+      joinColumn: { name: 'estudiante_id' },
+    },
+    sede: {
+      type: 'many-to-one',
+      target: 'Sede',
+      joinColumn: { name: 'sede_id' },
+    },
   },
 });
 
