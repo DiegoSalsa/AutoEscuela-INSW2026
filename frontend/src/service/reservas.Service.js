@@ -100,6 +100,9 @@ export async function getReservas(filtros = {}) {
   const query = new URLSearchParams();
   if (filtros.sedeId) query.append('s', filtros.sedeId);
   if (filtros.estudianteId) query.append('e', filtros.estudianteId);
+  if (filtros.fechaInicio) query.append('fi', filtros.fechaInicio);
+  if (filtros.fechaFin) query.append('ff', filtros.fechaFin);
+  
   const qs = query.toString();
   return fetchAPI(`/reservas${qs ? '?' + qs : ''}`);
 }
@@ -114,6 +117,21 @@ export async function actualizarReserva(id, reservaData, rol = 'estudiante') {
     headers: { 'x-rol': rol },
     body: JSON.stringify(reservaData),
   });
+}
+
+export async function suspenderReservasVehiculo(vehiculoId) {
+  return fetchAPI(`/reservas/vehiculo/${vehiculoId}/suspender`, {
+    method: 'PATCH',
+  });
+}
+
+export async function getDiasOcupados(mes, anio, sedeId, instructorId, vehiculoId, estudianteId) {
+  const params = new URLSearchParams({ mes, anio });
+  if (sedeId) params.append('si', sedeId);
+  if (instructorId) params.append('ii', instructorId);
+  if (vehiculoId) params.append('vi', vehiculoId);
+  if (estudianteId) params.append('ei', estudianteId);
+  return fetchAPI(`/reservas/dias-ocupados?${params.toString()}`);
 }
 
 export async function cancelarReserva(id, rol = 'estudiante') {

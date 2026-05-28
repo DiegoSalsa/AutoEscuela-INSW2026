@@ -13,25 +13,15 @@ import ReservasList from '../components/ReservasList';
 import '../App.css';
 import './ReservasView.css';
 
-// Usuario fantasma: simula el rol del usuario actual hasta que se integre auth
-// El rol se envia como header 'x-rol' al backend para la regla de 48h
-const USUARIOS_FANTASMA = [
-  // estudianteId: null = admin ve todas las reservas
-  // estudianteId: 52  = Carlos Prueba (carlos.prueba@test.cl)
-  { id: 'admin',      label: 'Administrador / Secretaria', rol: 'admin',      estudianteId: null },
-  { id: 'estudiante', label: 'Estudiante',                 rol: 'estudiante', estudianteId: 52   },
-];
-
-const ESTADO_INICIAL = {
-  sedeId: null, estudianteId: null, instructorId: null, vehiculoId: null,
-};
-
-export default function ReservasView() {
+export default function ReservasView({ user }) {
+  const ESTADO_INICIAL = {
+    sedeId: user.rol === 'estudiante' ? user.sedeId : null,
+    estudianteId: user.rol === 'estudiante' ? user.estudianteId : null,
+    instructorId: null,
+    vehiculoId: null,
+  };
   // Tab activa: 'nueva' | 'lista'
   const [tab, setTab] = useState('nueva');
-
-  // Usuario fantasma
-  const [usuarioFantasma, setUsuarioFantasma] = useState(USUARIOS_FANTASMA[0]);
 
   // Modo edición: si editandoId !== null estamos actualizando una reserva
   const [editandoId, setEditandoId] = useState(null);
@@ -153,7 +143,7 @@ export default function ReservasView() {
       if (selecciones.vehiculoId) payload.vehiculoId = selecciones.vehiculoId;
 
       if (editandoId) {
-        await actualizarReserva(editandoId, payload, usuarioFantasma.rol);
+        await actualizarReserva(editandoId, payload, user.rol);
       } else {
         await crearReserva(payload, idempotencyKey);
       }
@@ -181,25 +171,6 @@ export default function ReservasView() {
               : 'Crea y gestiona las reservas de clases de conducción.'}
           </p>
         </div>
-
-        {/* Selector de usuario fantasma — solo visible para admin/secretaria */}
-        {usuarioFantasma.rol === 'admin' && (
-          <div className="rv-usuario-selector">
-            <label className="rv-usuario-label">Perfil de usuario</label>
-            <select
-              className="rv-usuario-select"
-              value={usuarioFantasma.id}
-              onChange={(e) => {
-                const u = USUARIOS_FANTASMA.find(u => u.id === e.target.value);
-                setUsuarioFantasma(u);
-              }}
-            >
-              {USUARIOS_FANTASMA.map(u => (
-                <option key={u.id} value={u.id}>{u.label}</option>
-              ))}
-            </select>
-          </div>
-        )}
       </div>
 
       {/* Tabs */}
@@ -223,8 +194,8 @@ export default function ReservasView() {
       {/* Tab: lista de reservas */}
       {tab === 'lista' && !editandoId && (
         <ReservasList
-          rol={usuarioFantasma.rol}
-          estudianteId={usuarioFantasma.estudianteId}
+          rol={user.rol}
+          estudianteId={user.estudianteId}
           onEditar={iniciarEdicion}
         />
       )}
@@ -257,11 +228,13 @@ export default function ReservasView() {
             selecciones={selecciones}
             onSelect={(nuevas) => { setSelecciones(nuevas); setExito(false); }}
             requiereVehiculo={tipoClaseId !== 1}
+            user={user}
           />
 
           <div className="rv-calendar-row">
             <Calendario
               fechaSeleccionada={fecha}
+              selecciones={selecciones}
               onSelectFecha={(f) => { setFecha(f); setHora(null); setExito(false); setError(null); }}
             />
             <BloqueHorarios

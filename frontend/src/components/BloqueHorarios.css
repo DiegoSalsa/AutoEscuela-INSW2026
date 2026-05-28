@@ -32,7 +32,7 @@
   transition: all 0.2s;
 }
 
-.bloque-btn:hover:not(:disabled) {
+.bloque-btn:hover:not(:disabled):not(.seleccionado) {
   border-color: var(--primary-color);
   color: var(--primary-color);
 }
@@ -44,8 +44,8 @@
 }
 
 .bloque-btn.ocupado {
-  background-color: var(--bg-color);
-  color: #cbd5e1;
+  background-color: #fee2e2;
+  color: #dc2626;
   border-color: transparent;
   text-decoration: line-through;
   cursor: not-allowed;

@@ -36,11 +36,22 @@ export default function BloqueHorarios({ fechaSeleccionada, horariosOcupados, ho
     }
 
     return horariosOcupados.some(res => {
-      const reservaDate = new Date(res.fecha_inicio);
-      // Usar hora local de Chile, NO UTC
-      const reservaHour = reservaDate.getHours().toString().padStart(2, '0');
-      const reservaMin = reservaDate.getMinutes().toString().padStart(2, '0');
-      const reservaHoraStr = `${reservaHour}:${reservaMin}`;
+      let reservaHoraStr;
+      // si el backend envia un string con T y Z,
+      // la hora real está en la componente utc del objeto date
+      // para que no se desfase por la zona horaria del navegador
+      if (typeof res.inicio === 'string' && res.inicio.includes('T')) {
+        const reservaDate = new Date(res.inicio);
+        const reservaHour = reservaDate.getUTCHours().toString().padStart(2, '0');
+        const reservaMin = reservaDate.getUTCMinutes().toString().padStart(2, '0');
+        reservaHoraStr = `${reservaHour}:${reservaMin}`;
+      } else {
+        // por si acaso el formato es distinto
+        const reservaDate = new Date(res.fecha_inicio || res.inicio);
+        const reservaHour = reservaDate.getUTCHours().toString().padStart(2, '0');
+        const reservaMin = reservaDate.getUTCMinutes().toString().padStart(2, '0');
+        reservaHoraStr = `${reservaHour}:${reservaMin}`;
+      }
       return reservaHoraStr === bloque.horaInicio;
     });
   };

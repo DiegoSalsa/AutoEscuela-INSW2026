@@ -167,3 +167,79 @@
 .rl-section-title--completadas {
   color: #0891b2;
 }
+
+/* ── Buscador de Fechas ── */
+.rl-search-panel {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.rl-search-header {
+  color: #60a5fa;
+  padding: 0.5rem 1rem;
+  font-size: 1.2rem;
+  font-weight: 400;
+  border-bottom: 2px solid #60a5fa;
+  background: white;
+}
+
+.rl-search-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  background: #f9fafb;
+}
+
+.rl-search-inputs {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.rl-search-label {
+  font-size: 0.85rem;
+  color: #4b5563;
+  margin-right: 1rem;
+  flex: 1;
+  text-align: right;
+  font-weight: 600;
+}
+
+.rl-search-input {
+  border: 1px solid #e5e7eb;
+  background: #f3f4f6;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  color: #374151;
+  outline: none;
+  flex: 2;
+}
+
+.rl-search-separator {
+  background: #e5e7eb;
+  padding: 0.5rem 0.75rem;
+  color: #4b5563;
+  font-size: 0.85rem;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.rl-search-btn {
+  background: #60a5fa;
+  color: white;
+  padding: 0.5rem 2.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rl-search-btn:hover {
+  background: #3b82f6;
+}
