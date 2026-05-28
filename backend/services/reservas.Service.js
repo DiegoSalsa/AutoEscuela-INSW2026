@@ -236,6 +236,49 @@ const obtenerHorariosOcupados = async (filtros) => {
   return qb.getRawMany();
 };
 
+// obtiene los días del mes que están completamente llenos
+const obtenerDiasOcupados = async (filtros) => {
+  const { mes, anio, sedeId, instructorId, vehiculoId, estudianteId } = filtros;
+  
+  if (!mes || !anio) return [];
+
+  const fechaInicio = new Date(anio, mes - 1, 1).toISOString();
+  const fechaFin = new Date(anio, mes, 0, 23, 59, 59).toISOString();
+
+  const qb = AppDataSource.getRepository('Reserva').createQueryBuilder('r')
+    .select([
+      'EXTRACT(DAY FROM r.fecha_inicio) AS dia',
+      'COUNT(*) AS total_bloques'
+    ])
+    .where("r.estado IN ('confirmada', 'en_progreso', 'proxima')")
+    .andWhere('r.fecha_inicio >= :fechaInicio', { fechaInicio })
+    .andWhere('r.fecha_inicio <= :fechaFin', { fechaFin });
+
+  if (sedeId) qb.andWhere('r.sede_id = :sedeId', { sedeId });
+
+  // se necesita seleccionar al menos un recurso para saber si esta lleno
+  const condicionesRecursos = [];
+  const paramsRecursos = {};
+  
+  if (instructorId) { condicionesRecursos.push('r.instructor_id = :instructorId'); paramsRecursos.instructorId = instructorId; }
+  if (vehiculoId) { condicionesRecursos.push('r.vehiculo_id = :vehiculoId'); paramsRecursos.vehiculoId = vehiculoId; }
+  if (estudianteId) { condicionesRecursos.push('r.estudiante_id = :estudianteId'); paramsRecursos.estudianteId = estudianteId; }
+
+  if (condicionesRecursos.length > 0) {
+    qb.andWhere(`(${condicionesRecursos.join(' OR ')})`, paramsRecursos);
+  } else {
+    // si no hay filtro, retornamos vacio
+    return [];
+  }
+
+  const resultados = await qb
+    .groupBy('EXTRACT(DAY FROM r.fecha_inicio)')
+    .having('COUNT(*) >= 11') // maximo por dia
+    .getRawMany();
+
+  return resultados.map(r => parseInt(r.dia, 10));
+};
+
 // Suspende reservas futuras de un vehiculo (pasa de confirmada a pendiente)
 // Se usa cuando un vehiculo entra a mantenimiento para liberar su agenda
 const suspenderReservasVehiculo = async (vehiculoId, manager) => {
@@ -397,5 +440,6 @@ module.exports = {
   obtenerReservaPorId,
   obtenerReservas,
   obtenerHorariosOcupados,
+  obtenerDiasOcupados,
   suspenderReservasVehiculo,
 };

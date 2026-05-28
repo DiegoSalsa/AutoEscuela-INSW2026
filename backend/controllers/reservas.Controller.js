@@ -82,6 +82,24 @@ const obtenerHorariosOcupados = async (req, res) => {
   }
 };
 
+const obtenerDiasOcupados = async (req, res) => {
+  try {
+    const { mes, anio, si, ii, vi, ei } = req.query;
+    const dias = await reservasService.obtenerDiasOcupados({
+      mes: parseInt(mes, 10),
+      anio: parseInt(anio, 10),
+      sedeId: si,
+      instructorId: ii,
+      vehiculoId: vi,
+      estudianteId: ei
+    });
+    res.json(dias);
+  } catch (error) {
+    console.error('Error en obtenerDiasOcupados:', error.message);
+    res.status(500).json({ error: 'Error al obtener dias ocupados' });
+  }
+};
+
 // Suspender reservas futuras de un vehiculo (para mantenimiento)
 const suspenderReservasVehiculo = async (req, res) => {
   try {
@@ -248,7 +266,7 @@ const cancelarReserva = async (req, res) => {
 };
 
 module.exports = {
-  crearReserva, obtenerReservas, obtenerHorariosOcupados, suspenderReservasVehiculo,
+  crearReserva, obtenerReservas, obtenerHorariosOcupados, obtenerDiasOcupados, suspenderReservasVehiculo,
   obtenerTiposClase, obtenerSedes, obtenerEstudiantes, obtenerInstructores, obtenerVehiculos,
   obtenerReservaPorId, actualizarReserva, cancelarReserva,
 };
