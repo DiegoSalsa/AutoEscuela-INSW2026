@@ -27,7 +27,7 @@ export default function BloqueHorarios({ fechaSeleccionada, horariosOcupados, ho
   // comparamos solo la horaInicio.
   const isBloqueOcupado = (bloque) => {
     if (!fechaSeleccionada) return true;
-    
+
     // Si la fecha seleccionada es hoy, bloquear horas pasadas (zona horaria Chile)
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' }));
     if (fechaSeleccionada.toDateString() === now.toDateString()) {
