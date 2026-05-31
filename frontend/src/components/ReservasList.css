@@ -1,0 +1,245 @@
+.rl-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.rl-section-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 0.75rem;
+}
+
+.rl-section-historial {
+  opacity: 0.7;
+}
+
+.rl-empty {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  padding: 1rem 0;
+}
+
+.rl-error {
+  color: #dc2626;
+}
+
+.rl-table-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.rl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.rl-table th {
+  background: var(--card-bg);
+  color: var(--text-muted);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.rl-table td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-color);
+  vertical-align: middle;
+}
+
+.rl-table tr:last-child td {
+  border-bottom: none;
+}
+
+.rl-table tr:hover td {
+  background: var(--hover-bg, #f9fafb);
+}
+
+.rl-id {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.rl-row-muted td {
+  color: var(--text-muted);
+}
+
+.rl-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rl-actions {
+  display: flex;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.rl-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.rl-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.rl-btn-edit {
+  background: var(--primary-color, #002366);
+  color: white;
+}
+
+.rl-btn-edit:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.rl-btn-cancel {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.rl-btn-cancel:hover:not(:disabled) {
+  background: #fca5a5;
+}
+
+/* ── Historial header (título + botón en la misma fila) ── */
+.rl-historial-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.rl-historial-header .rl-section-title {
+  margin-bottom: 0;
+}
+
+/* ── Botón toggle mostrar/ocultar historial ── */
+.rl-btn-toggle {
+  flex-shrink: 0;
+  padding: 5px 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border-color, #e5e7eb);
+  background: transparent;
+  color: var(--text-muted, #6b7280);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.rl-btn-toggle:hover {
+  border-color: var(--primary-color, #002366);
+  color: var(--primary-color, #002366);
+  background: rgba(0, 35, 102, 0.04);
+}
+
+/* ── Texto de ayuda junto al título ── */
+.rl-hint {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-muted, #9ca3af);
+  margin-left: 0.5rem;
+}
+
+/* ── Sección de completadas recientes ── */
+.rl-section-title--completadas {
+  color: #0891b2;
+}
+
+/* ── Buscador de Fechas ── */
+.rl-search-panel {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.rl-search-header {
+  color: #60a5fa;
+  padding: 0.5rem 1rem;
+  font-size: 1.2rem;
+  font-weight: 400;
+  border-bottom: 2px solid #60a5fa;
+  background: white;
+}
+
+.rl-search-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  background: #f9fafb;
+}
+
+.rl-search-inputs {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.rl-search-label {
+  font-size: 0.85rem;
+  color: #4b5563;
+  margin-right: 1rem;
+  flex: 1;
+  text-align: right;
+  font-weight: 600;
+}
+
+.rl-search-input {
+  border: 1px solid #e5e7eb;
+  background: #f3f4f6;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  color: #374151;
+  outline: none;
+  flex: 2;
+}
+
+.rl-search-separator {
+  background: #e5e7eb;
+  padding: 0.5rem 0.75rem;
+  color: #4b5563;
+  font-size: 0.85rem;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.rl-search-btn {
+  background: #60a5fa;
+  color: white;
+  padding: 0.5rem 2.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rl-search-btn:hover {
+  background: #3b82f6;
+}

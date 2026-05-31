@@ -1,0 +1,124 @@
+.rv-wrapper {
+  padding: 1.5rem 2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Header */
+.rv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.rv-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-color, #002366);
+  margin: 0 0 0.25rem;
+}
+
+.rv-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted, #6b7280);
+  margin: 0;
+}
+
+/* Selector de usuario fantasma */
+.rv-usuario-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.rv-usuario-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rv-usuario-select {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: var(--card-bg, #fff);
+  color: var(--text-color);
+  cursor: pointer;
+  outline: none;
+}
+
+.rv-usuario-select:focus {
+  border-color: var(--primary-color, #002366);
+  box-shadow: 0 0 0 2px rgba(0, 35, 102, 0.1);
+}
+
+/* Tabs */
+.rv-tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 2px solid var(--border-color, #e5e7eb);
+  margin-bottom: 1.5rem;
+}
+
+.rv-tab {
+  padding: 0.5rem 1.25rem;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted, #6b7280);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.rv-tab:hover {
+  color: var(--primary-color, #002366);
+}
+
+.rv-tab-active {
+  color: var(--primary-color, #002366);
+  border-bottom-color: var(--primary-color, #002366);
+  font-weight: 600;
+}
+
+/* Banner de edición */
+.rv-edit-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #1d4ed8;
+  margin-bottom: 1.25rem;
+}
+
+.rv-edit-cancel-link {
+  background: none;
+  border: none;
+  color: #dc2626;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* Fila del calendario */
+.rv-calendar-row {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-top: 1rem;
+}

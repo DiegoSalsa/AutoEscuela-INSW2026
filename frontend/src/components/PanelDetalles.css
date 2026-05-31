@@ -1,0 +1,73 @@
+.panel-detalles {
+  padding: 1.5rem;
+  background: var(--surface-color);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  min-width: 250px;
+  flex: 0 0 300px;
+}
+
+.panel-title {
+  font-size: 1.125rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+
+.resumen-item {
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+
+.btn-confirmar {
+  width: 100%;
+  background-color: var(--secondary-color);
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  font-size: 1rem;
+  margin-top: 1.5rem;
+}
+
+.btn-confirmar:hover:not(:disabled) {
+  background-color: var(--secondary-hover);
+  color: white;
+}
+
+.btn-confirmar:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.alert-error {
+  background-color: #fef2f2;
+  color: var(--error);
+  padding: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #fecaca;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+}
+
+.alert-success {
+  background-color: #ecfdf5;
+  color: var(--success);
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid #a7f3d0;
+  text-align: center;
+}
+
+.alert-success h4 {
+  color: var(--success);
+  margin-bottom: 0.5rem;
+}

@@ -1,0 +1,130 @@
+.login-simple-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f3f4f6; /* Fondo gris claro neutral */
+  font-family: 'Inter', -apple-system, sans-serif;
+  padding: 2rem;
+}
+
+.login-simple-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 3rem;
+  width: 100%;
+  max-width: 450px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.login-simple-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e3a8a; /* Azul oscuro */
+  margin: 0 0 0.5rem 0;
+}
+
+.login-simple-subtitle {
+  color: #6b7280;
+  font-size: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.login-simple-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.login-simple-form {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.btn-back {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0;
+  margin-bottom: 1.5rem;
+  text-align: left;
+  display: inline-block;
+}
+
+.btn-back:hover {
+  color: #374151;
+  text-decoration: underline;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.info-text {
+  color: #4b5563;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.login-simple-select {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #111827;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.login-simple-select:focus {
+  border-color: #2563eb;
+  background-color: #ffffff;
+}
+
+.login-simple-btn {
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #ffffff;
+}
+
+.login-simple-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-admin {
+  background-color: #1e3a8a;
+}
+
+.btn-admin:hover {
+  background-color: #1e40af;
+}
+
+.btn-student {
+  background-color: #2563eb;
+}
+
+.btn-student:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}

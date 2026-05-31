@@ -71,41 +71,39 @@ const menuItems = [
       </svg>
     ),
   },
-  {
-    id: 'reportes',
-    label: 'Reportes',
-    icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-        <polyline points="14 2 14 8 20 8"/>
-        <line x1="16" x2="8" y1="13" y2="13"/>
-        <line x1="16" x2="8" y1="17" y2="17"/>
-        <line x1="10" x2="8" y1="9" y2="9"/>
-      </svg>
-    ),
-  },
+
 ];
 
-export default function Sidebar({ vistaActual, onSetVista }) {
+export default function Sidebar({ vistaActual, onSetVista, user, onLogout }) {
+  // Filtrar items según el rol del usuario
+  const visibleMenuItems = menuItems.filter(item => {
+    if (user?.rol === 'estudiante') {
+      return item.id === 'agenda';
+    }
+    return true; // Admin ve todo
+  });
+
   return (
     <aside className="w-64 bg-primary text-white h-full flex flex-col font-body">
       <div className="p-6">
-        <h1 className="text-2xl font-bold font-headline tracking-wider">AUTODRIVE</h1>
-        <p className="text-sm text-neutral/70 mt-1">Dashboard Analytics</p>
+        <h1 className="text-2xl font-bold font-headline tracking-wider text-white">AUTODRIVE</h1>
+        <p className="text-sm text-neutral/70 mt-1">
+          {user?.rol === 'admin' ? 'Dashboard Analytics' : 'Portal de Estudiantes'}
+        </p>
       </div>
 
       <nav className="flex-1 mt-6 px-4 space-y-2">
-        {menuItems.map((item) => {
+        {visibleMenuItems.map((item) => {
           const isActive = vistaActual === item.id;
           return (
             <button
               key={item.id}
               id={`menu-btn-${item.id}`}
               onClick={() => onSetVista(item.id)}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors !border-none ${
                 isActive
                   ? 'bg-secondary text-white font-semibold'
-                  : 'text-gray-300 hover:bg-primary/80 hover:text-white'
+                  : '!bg-transparent text-gray-300 hover:bg-primary/80 hover:text-white'
               }`}
             >
               <span className={isActive ? 'text-tertiary' : 'text-gray-400'}>
@@ -117,8 +115,17 @@ export default function Sidebar({ vistaActual, onSetVista }) {
         })}
       </nav>
 
-      <div className="p-4 border-t border-secondary/50">
-        <p className="text-xs text-center text-gray-400">© 2026 AutoDrive Academy</p>
+      <div className="p-4 border-t border-secondary/50 flex flex-col items-center">
+        <button 
+          onClick={onLogout}
+          className="w-full flex justify-center items-center space-x-2 px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 rounded-lg transition-colors text-sm font-semibold"
+        >
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          <span>Cerrar Sesión</span>
+        </button>
+        <p className="text-xs text-center text-gray-500 mt-4">© 2026 AutoDrive Academy</p>
       </div>
     </aside>
   );
