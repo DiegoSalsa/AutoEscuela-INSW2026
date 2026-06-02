@@ -98,7 +98,12 @@ const crearReservaTransaccional = async (reservaData) => {
       // Verificar conflictos de horario con OVERLAPS de PostgreSQL
       // Se suma un buffer de 15 min al final para limpieza del vehiculo
       const condicionesConflicto = ['r.instructor_id = :instructorId', 'r.estudiante_id = :estudianteId'];
-      const paramsConflicto = { instructorId, estudianteId, fechaInicio, fechaFin };
+      
+      const fechaFinDate = new Date(fechaFin);
+      fechaFinDate.setMinutes(fechaFinDate.getMinutes() + 15);
+      const fechaFinBuffer = fechaFinDate.toISOString();
+
+      const paramsConflicto = { instructorId, estudianteId, fechaInicio, fechaFinBuffer };
       if (vehiculoId) {
         condicionesConflicto.push('r.vehiculo_id = :vehiculoId');
         paramsConflicto.vehiculoId = vehiculoId;
@@ -111,8 +116,8 @@ const crearReservaTransaccional = async (reservaData) => {
           paramsConflicto
         )
         .andWhere(
-          '(r.fecha_inicio, r.fecha_fin) OVERLAPS (:fechaInicio::timestamp, (:fechaFin::timestamp + INTERVAL \'15 minutes\'))',
-          { fechaInicio, fechaFin }
+          '(r.fecha_inicio < :fechaFinBuffer AND r.fecha_fin > :fechaInicio)',
+          { fechaInicio, fechaFinBuffer }
         )
         .getOne();
 
@@ -169,9 +174,9 @@ const obtenerReservas = async (filtros) => {
       'tc.nombre         AS tipo_clase_nombre',
       'tc.color          AS tipo_clase_color',
     ])
-    .innerJoin('sedes',       's',  'r.sede_id        = s.id')
-    .innerJoin('usuarios',    'e',  'r.estudiante_id  = e.id')
-    .innerJoin('usuarios',    'i',  'r.instructor_id  = i.id')
+    .leftJoin('sedes',       's',  'r.sede_id        = s.id')
+    .leftJoin('usuarios',    'e',  'r.estudiante_id  = e.id')
+    .leftJoin('usuarios',    'i',  'r.instructor_id  = i.id')
     .leftJoin('vehiculos',    'v',  'r.vehiculo_id    = v.id')
     .leftJoin('tipos_clase',  'tc', 'r.tipo_clase_id  = tc.id');
 
@@ -187,7 +192,9 @@ const obtenerReservas = async (filtros) => {
     estudianteId: 'r.estudiante_id',
   });
 
-  return qb.orderBy('r.fecha_inicio', 'ASC').getRawMany();
+  const resultados = await qb.orderBy('r.fecha_inicio', 'ASC').getRawMany();
+  console.log(`[DEBUG] obtenerReservas encontró ${resultados.length} reservas.`);
+  return resultados;
 };
 
 // Obtiene los horarios ocupados para pintar el calendario
@@ -358,7 +365,12 @@ const actualizarReservaTransaccional = async (id, data, esAdmin = false) => {
 
       // Verificar conflictos excluyendo la misma reserva
       const condicionesConflicto = ['r.instructor_id = :instructorId', 'r.estudiante_id = :estudianteId'];
-      const paramsConflicto = { id, instructorId, estudianteId, fechaInicio, fechaFin };
+      
+      const fechaFinDate = new Date(fechaFin);
+      fechaFinDate.setMinutes(fechaFinDate.getMinutes() + 15);
+      const fechaFinBuffer = fechaFinDate.toISOString();
+
+      const paramsConflicto = { id, instructorId, estudianteId, fechaInicio, fechaFinBuffer };
       if (vehiculoId) {
         condicionesConflicto.push('r.vehiculo_id = :vehiculoId');
         paramsConflicto.vehiculoId = vehiculoId;
@@ -372,8 +384,8 @@ const actualizarReservaTransaccional = async (id, data, esAdmin = false) => {
           paramsConflicto
         )
         .andWhere(
-          "(r.fecha_inicio, r.fecha_fin) OVERLAPS (:fechaInicio::timestamp, (:fechaFin::timestamp + INTERVAL '15 minutes'))",
-          { fechaInicio, fechaFin }
+          '(r.fecha_inicio < :fechaFinBuffer AND r.fecha_fin > :fechaInicio)',
+          { fechaInicio, fechaFinBuffer }
         )
         .getOne();
 

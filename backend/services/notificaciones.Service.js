@@ -19,13 +19,18 @@ const FROM = () => process.env.EMAIL_FROM || 'AutoDrive Academy <onboarding@rese
 
 // Enviar email de forma asincrona (fire-and-forget)
 const enviarEmail = async (to, subject, html) => {
-  if (!to) return;
+  // OVERRIDE: Si hay un correo configurado en .env, forzamos el envío a ese correo.
+  // Esto es vital si la BD tiene correos falsos y Resend exige un correo verificado.
+  const emailDestino = process.env.TEST_EMAIL_OVERRIDE || to;
+  
+  if (!emailDestino) return;
 
   // Modo desarrollo: loguear en consola
   if (!resend) {
     console.log('═══════════════════════════════════════════');
     console.log(`📧 EMAIL (modo dev)`);
-    console.log(`   Para: ${to}`);
+    console.log(`   Para Original: ${to}`);
+    console.log(`   Enviando A: ${emailDestino}`);
     console.log(`   Asunto: ${subject}`);
     console.log('═══════════════════════════════════════════');
     return;
@@ -34,7 +39,7 @@ const enviarEmail = async (to, subject, html) => {
   try {
     const { data, error } = await resend.emails.send({
       from: FROM(),
-      to,
+      to: emailDestino,
       subject,
       html,
     });
