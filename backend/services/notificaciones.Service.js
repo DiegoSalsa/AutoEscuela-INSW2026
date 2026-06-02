@@ -1,58 +1,50 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-let transporter = null;
+let resend = null;
 
-// Inicializar transporter de Nodemailer
-// Si no hay SMTP configurado, crea una cuenta Ethereal de prueba
+// Inicializar cliente Resend
+// Si no hay API key configurada, los emails se loguean en consola (modo desarrollo)
 const initMailer = async () => {
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = process.env.SMTP_PORT;
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
+  const apiKey = process.env.RESEND_API_KEY;
 
-  if (smtpHost && smtpUser && smtpPass) {
-
-    transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: parseInt(smtpPort, 10) || 587,
-      secure: parseInt(smtpPort, 10) === 465,
-      auth: { user: smtpUser, pass: smtpPass },
-    });
-    console.log(`Nodemailer configurado con SMTP: ${smtpHost}`);
+  if (apiKey) {
+    resend = new Resend(apiKey);
+    console.log('Resend configurado correctamente');
   } else {
-
-    try {
-      const testAccount = await nodemailer.createTestAccount();
-      transporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 587,
-        secure: false,
-        auth: { user: testAccount.user, pass: testAccount.pass },
-      });
-      console.log('Nodemailer en modo prueba (Ethereal)');
-      console.log(`Usuario Ethereal: ${testAccount.user}`);
-    } catch (err) {
-      console.warn('No se pudo inicializar Nodemailer:', err.message);
-    }
+    console.warn('RESEND_API_KEY no configurada — emails se mostrarán solo en consola (modo desarrollo)');
   }
 };
 
-const FROM = () => process.env.SMTP_FROM || '"AutoDrive Academy" <noreply@autodrive.cl>';
+const FROM = () => process.env.EMAIL_FROM || 'AutoDrive Academy <onboarding@resend.dev>';
 
 // Enviar email de forma asincrona (fire-and-forget)
 const enviarEmail = async (to, subject, html) => {
-  if (!transporter || !to) return;
+  if (!to) return;
+
+  // Modo desarrollo: loguear en consola
+  if (!resend) {
+    console.log('═══════════════════════════════════════════');
+    console.log(`📧 EMAIL (modo dev)`);
+    console.log(`   Para: ${to}`);
+    console.log(`   Asunto: ${subject}`);
+    console.log('═══════════════════════════════════════════');
+    return;
+  }
+
   try {
-    const info = await transporter.sendMail({
+    const { data, error } = await resend.emails.send({
       from: FROM(),
       to,
       subject,
       html,
     });
-    const previewUrl = nodemailer.getTestMessageUrl(info);
-    if (previewUrl) {
-      console.log(`Preview email: ${previewUrl}`);
+
+    if (error) {
+      console.error('Error al enviar email (Resend):', error.message);
+      return;
     }
+
+    console.log(`Email enviado exitosamente (ID: ${data.id})`);
   } catch (err) {
     console.error('Error al enviar email:', err.message);
   }
@@ -150,7 +142,7 @@ const bloqueInfoTipoClase = (tipoClase) => {
 
 // Enviar confirmacion de reserva
 
-const enviarConfirmacion = (reserva, emailEstudiante, sede, tipoClase) => {
+const enviarConfirmacion = async (reserva, emailEstudiante, sede, tipoClase) => {
   const fechaFormateada = new Date(reserva.fecha_inicio).toLocaleDateString('es-CL', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
@@ -184,12 +176,12 @@ const enviarConfirmacion = (reserva, emailEstudiante, sede, tipoClase) => {
   `;
 
 
-  enviarEmail(emailEstudiante, subject, emailWrapper(contenido)).catch(() => {});
+  await enviarEmail(emailEstudiante, subject, emailWrapper(contenido));
 };
 
 // Enviar notificacion de cancelacion
 
-const enviarCancelacion = (reserva, emailEstudiante, sede, tipoClase) => {
+const enviarCancelacion = async (reserva, emailEstudiante, sede, tipoClase) => {
   const fechaFormateada = new Date(reserva.fecha_inicio).toLocaleDateString('es-CL', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
@@ -210,11 +202,11 @@ const enviarCancelacion = (reserva, emailEstudiante, sede, tipoClase) => {
     </div>
   `;
 
-  enviarEmail(emailEstudiante, subject, emailWrapper(contenido)).catch(() => {});
+  await enviarEmail(emailEstudiante, subject, emailWrapper(contenido));
 };
 
 // Enviar recordatorio (1 hora antes de la clase)
-const enviarRecordatorio = (reserva, emailEstudiante, sede, tipoClase) => {
+const enviarRecordatorio = async (reserva, emailEstudiante, sede, tipoClase) => {
   const horaInicio = new Date(reserva.fecha_inicio).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
   const fechaFormateada = new Date(reserva.fecha_inicio).toLocaleDateString('es-CL', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
@@ -245,11 +237,11 @@ const enviarRecordatorio = (reserva, emailEstudiante, sede, tipoClase) => {
     ${bloqueInfoSede(sede)}
   `;
 
-  enviarEmail(emailEstudiante, subject, emailWrapper(contenido)).catch(() => {});
+  await enviarEmail(emailEstudiante, subject, emailWrapper(contenido));
 };
 
 // Enviar notificacion de modificacion de reserva
-const enviarModificacion = (reserva, emailEstudiante, sede, tipoClase) => {
+const enviarModificacion = async (reserva, emailEstudiante, sede, tipoClase) => {
   const fechaFormateada = new Date(reserva.fecha_inicio).toLocaleDateString('es-CL', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
   });
@@ -282,7 +274,7 @@ const enviarModificacion = (reserva, emailEstudiante, sede, tipoClase) => {
     </p>
   `;
 
-  enviarEmail(emailEstudiante, subject, emailWrapper(contenido)).catch(() => {});
+  await enviarEmail(emailEstudiante, subject, emailWrapper(contenido));
 };
 
 module.exports = { initMailer, enviarConfirmacion, enviarCancelacion, enviarModificacion, enviarRecordatorio };

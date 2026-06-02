@@ -14,19 +14,19 @@ const crearReserva = async (req, res) => {
     const repoUsuario = AppDataSource.getRepository('Usuario');
     const repoSede = AppDataSource.getRepository('Sede');
 
-    Promise.all([
+    await Promise.all([
       repoUsuario.findOne({ where: { id: nuevaReserva.estudiante_id } }),
       repoSede.findOne({ where: { id: nuevaReserva.sede_id } }),
       nuevaReserva.tipo_clase_id
         ? AppDataSource.getRepository('TipoClase').findOne({ where: { id: nuevaReserva.tipo_clase_id } })
         : Promise.resolve(null),
     ])
-      .then(([est, sede, tipoClase]) => {
+      .then(async ([est, sede, tipoClase]) => {
         if (est && est.email) {
-          enviarConfirmacion(nuevaReserva, est.email, sede, tipoClase);
+          await enviarConfirmacion(nuevaReserva, est.email, sede, tipoClase);
         }
       })
-      .catch(() => {});
+      .catch((e) => { console.error('Error enviando email:', e); });
 
     res.status(201).json({
       mensaje: 'Reserva creada exitosamente',
@@ -66,8 +66,8 @@ const obtenerHorariosOcupados = async (req, res) => {
   try {
     let { vi, fi, ff, si, ii, ei } = req.query;
     const vehiculoId = vi;
-    const fechaInicio = fi;
-    const fechaFin = ff;
+    const fechaInicio = fi ? (fi.includes('T') ? fi : `${fi}T00:00:00.000Z`) : undefined;
+    const fechaFin = ff ? (ff.includes('T') ? ff : `${ff}T23:59:59.999Z`) : undefined;
     const sedeId = si;
     const instructorId = ii;
     const estudianteId = ei;
@@ -217,17 +217,17 @@ const actualizarReserva = async (req, res) => {
     // Email de modificacion (fire-and-forget)
     const repoUsuario = AppDataSource.getRepository('Usuario');
     const repoSede = AppDataSource.getRepository('Sede');
-    Promise.all([
+    await Promise.all([
       repoUsuario.findOne({ where: { id: reserva.estudiante_id } }),
       repoSede.findOne({ where: { id: reserva.sede_id } }),
       reserva.tipo_clase_id
         ? AppDataSource.getRepository('TipoClase').findOne({ where: { id: reserva.tipo_clase_id } })
         : Promise.resolve(null),
     ])
-      .then(([est, sede, tipoClase]) => {
-        if (est && est.email) enviarModificacion(reserva, est.email, sede, tipoClase);
+      .then(async ([est, sede, tipoClase]) => {
+        if (est && est.email) await enviarModificacion(reserva, est.email, sede, tipoClase);
       })
-      .catch(() => {});
+      .catch((e) => { console.error('Error enviando email:', e); });
 
     res.json({ mensaje: 'Reserva actualizada exitosamente', data: reserva });
   } catch (error) {
@@ -248,14 +248,14 @@ const cancelarReserva = async (req, res) => {
     // Email de cancelacion (fire-and-forget)
     const repoUsuario = AppDataSource.getRepository('Usuario');
     const repoSede = AppDataSource.getRepository('Sede');
-    Promise.all([
+    await Promise.all([
       repoUsuario.findOne({ where: { id: reserva.estudiante_id } }),
       repoSede.findOne({ where: { id: reserva.sede_id } }),
     ])
-      .then(([est, sede]) => {
-        if (est && est.email) enviarCancelacion(reserva, est.email, sede);
+      .then(async ([est, sede]) => {
+        if (est && est.email) await enviarCancelacion(reserva, est.email, sede);
       })
-      .catch(() => {});
+      .catch((e) => { console.error('Error enviando email:', e); });
 
     res.json({ mensaje: 'Reserva cancelada exitosamente', data: reserva });
   } catch (error) {

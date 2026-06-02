@@ -172,8 +172,8 @@ const obtenerReservas = async (filtros) => {
     .innerJoin('sedes',       's',  'r.sede_id        = s.id')
     .innerJoin('usuarios',    'e',  'r.estudiante_id  = e.id')
     .innerJoin('usuarios',    'i',  'r.instructor_id  = i.id')
-    .innerJoin('vehiculos',   'v',  'r.vehiculo_id    = v.id')
-    .leftJoin('tipos_clase', 'tc', 'r.tipo_clase_id  = tc.id');
+    .leftJoin('vehiculos',    'v',  'r.vehiculo_id    = v.id')
+    .leftJoin('tipos_clase',  'tc', 'r.tipo_clase_id  = tc.id');
 
   // filtros de rango temporal
   if (filtros.fechaInicio) qb.andWhere('r.fecha_inicio >= :fechaInicio', { fechaInicio: filtros.fechaInicio });
