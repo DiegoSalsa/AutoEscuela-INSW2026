@@ -12,6 +12,7 @@ const { iniciarScheduler } = require('./jobs/scheduler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 
 // Servidor HTTP (requerido por Socket.io)
 const server = http.createServer(app);
@@ -41,9 +42,9 @@ AppDataSource.initialize()
 
     iniciarScheduler();
 
-    server.listen(PORT, () => {
-      console.log(`Servidor corriendo en http://localhost:${PORT}`);
-      console.log(`WebSocket escuchando en ws://localhost:${PORT}`);
+    server.listen(PORT, HOST, () => {
+      console.log(`Servidor corriendo en http://${HOST}:${PORT}`);
+      console.log(`WebSocket escuchando en ws://${HOST}:${PORT}`);
     });
   })
   .catch((err) => {
