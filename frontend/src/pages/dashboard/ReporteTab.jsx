@@ -41,13 +41,13 @@ function exportarExcel(reporte) {
   ];
 
   if (reporte.metricas?.clases_completadas) {
-    resumenData.push(['--- Clases Completadas ---']);
+    resumenData.push(['Clases Completadas']);
     resumenData.push(['Total', reporte.metricas.clases_completadas.total]);
     resumenData.push(['']);
   }
   if (reporte.metricas?.uso_flota) {
     const uf = reporte.metricas.uso_flota;
-    resumenData.push(['--- Uso de Flota ---']);
+    resumenData.push(['Uso de Flota']);
     resumenData.push(['Vehiculos Ocupados', uf.vehiculosOcupados]);
     resumenData.push(['Vehiculos Disponibles', uf.vehiculosDisponibles]);
     resumenData.push(['Total Flota', uf.totalFlota]);
@@ -56,7 +56,7 @@ function exportarExcel(reporte) {
   }
   if (reporte.metricas?.aprobados_reprobados) {
     const ar = reporte.metricas.aprobados_reprobados;
-    resumenData.push(['--- Aprobados vs Reprobados ---']);
+    resumenData.push(['Aprobados vs Reprobados']);
     resumenData.push(['Aprobados', ar.aprobados]);
     resumenData.push(['Reprobados', ar.reprobados]);
     resumenData.push(['Total Examenes', ar.total]);
@@ -65,7 +65,7 @@ function exportarExcel(reporte) {
   }
   if (reporte.metricas?.ingresos) {
     const ig = reporte.metricas.ingresos;
-    resumenData.push(['--- Ingresos ---']);
+    resumenData.push(['Ingresos']);
     resumenData.push(['Total Ingresos', ig.totalIngresos]);
     resumenData.push(['Total Pagos', ig.totalPagos]);
     resumenData.push(['']);

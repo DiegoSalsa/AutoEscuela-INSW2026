@@ -2,6 +2,161 @@ const { AppDataSource } = require('../db/data-source');
 
 const HOY_SQL = `(CURRENT_TIMESTAMP AT TIME ZONE 'America/Santiago')::date`;
 
+const METRICAS_META = {
+  clases_completadas: ['clases completadas', 'clases_completadas', 'clases'],
+  ingresos: ['ingresos', 'ingresos del mes', 'ventas'],
+  estudiantes_activos: ['estudiantes activos', 'estudiantes_activos', 'alumnos activos'],
+  nuevos_estudiantes: ['nuevos estudiantes', 'nuevos_estudiantes', 'nuevos alumnos', 'matriculas'],
+  aprobados: ['aprobados', 'examenes aprobados'],
+  tasa_aprobacion: ['tasa aprobacion', 'tasa de aprobacion', 'tasa_aprobacion'],
+  uso_flota: ['uso flota', 'uso de flota', 'uso_flota', 'ocupacion flota'],
+  vehiculos_disponibles: ['vehiculos disponibles', 'vehiculos_disponibles', 'autos disponibles'],
+};
+
+function normalizarTexto(valor = '') {
+  return String(valor)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function obtenerClaveMetrica(nombre) {
+  const normalizado = normalizarTexto(nombre);
+  return Object.entries(METRICAS_META).find(([, alias]) => alias.includes(normalizado))?.[0] || null;
+}
+
+function obtenerRangoMes(mesAnio) {
+  const [anio, mes] = String(mesAnio || '').split('-').map(Number);
+  if (!anio || !mes || mes < 1 || mes > 12) return null;
+  const inicio = `${anio}-${String(mes).padStart(2, '0')}-01`;
+  const siguienteMes = mes === 12 ? 1 : mes + 1;
+  const siguienteAnio = mes === 12 ? anio + 1 : anio;
+  const finExclusivo = `${siguienteAnio}-${String(siguienteMes).padStart(2, '0')}-01`;
+  return { inicio, finExclusivo };
+}
+
+function filtrarSede(qb, alias, sedeId) {
+  if (sedeId) qb.andWhere(`${alias}.sede_id = :sedeId`, { sedeId });
+  return qb;
+}
+
+async function calcularValorActualMeta(meta) {
+  const clave = obtenerClaveMetrica(meta.metrica_nombre);
+  const sedeId = meta.sede_id || null;
+  const rango = obtenerRangoMes(meta.mes_anio);
+
+  if (!clave || !rango) return { clave, valorActual: 0 };
+
+  if (clave === 'clases_completadas') {
+    const qb = AppDataSource.getRepository('Reserva').createQueryBuilder('r')
+      .select('COUNT(*)', 'total')
+      .where("r.estado = 'completada'")
+      .andWhere('r.fecha_inicio >= :inicio', { inicio: rango.inicio })
+      .andWhere('r.fecha_inicio < :finExclusivo', { finExclusivo: rango.finExclusivo });
+    filtrarSede(qb, 'r', sedeId);
+    const row = await qb.getRawOne();
+    return { clave, valorActual: parseInt(row.total, 10) || 0 };
+  }
+
+  if (clave === 'ingresos') {
+    const qb = AppDataSource.getRepository('Pago').createQueryBuilder('p')
+      .select('COALESCE(SUM(p.monto), 0)', 'total')
+      .where('p.fecha >= :inicio', { inicio: rango.inicio })
+      .andWhere('p.fecha < :finExclusivo', { finExclusivo: rango.finExclusivo });
+    filtrarSede(qb, 'p', sedeId);
+    const row = await qb.getRawOne();
+    return { clave, valorActual: parseFloat(row.total) || 0 };
+  }
+
+  if (clave === 'estudiantes_activos') {
+    const qb = AppDataSource.getRepository('Usuario').createQueryBuilder('u')
+      .select('COUNT(*)', 'total')
+      .where("u.rol = 'estudiante'")
+      .andWhere("u.estado = 'activo'");
+    filtrarSede(qb, 'u', sedeId);
+    const row = await qb.getRawOne();
+    return { clave, valorActual: parseInt(row.total, 10) || 0 };
+  }
+
+  if (clave === 'nuevos_estudiantes') {
+    const qb = AppDataSource.getRepository('Usuario').createQueryBuilder('u')
+      .select('COUNT(*)', 'total')
+      .where("u.rol = 'estudiante'")
+      .andWhere('u.created_at >= :inicio', { inicio: rango.inicio })
+      .andWhere('u.created_at < :finExclusivo', { finExclusivo: rango.finExclusivo });
+    filtrarSede(qb, 'u', sedeId);
+    const row = await qb.getRawOne();
+    return { clave, valorActual: parseInt(row.total, 10) || 0 };
+  }
+
+  if (clave === 'aprobados') {
+    const qb = AppDataSource.getRepository('ResultadoExamen').createQueryBuilder('re')
+      .select('COUNT(*)', 'total')
+      .where('re.aprobado = true')
+      .andWhere('re.fecha >= :inicio', { inicio: rango.inicio })
+      .andWhere('re.fecha < :finExclusivo', { finExclusivo: rango.finExclusivo });
+    filtrarSede(qb, 're', sedeId);
+    const row = await qb.getRawOne();
+    return { clave, valorActual: parseInt(row.total, 10) || 0 };
+  }
+
+  if (clave === 'tasa_aprobacion') {
+    const qb = AppDataSource.getRepository('ResultadoExamen').createQueryBuilder('re')
+      .select([
+        "COUNT(*) FILTER (WHERE re.aprobado = true) AS aprobados",
+        'COUNT(*) AS total',
+      ])
+      .where('re.fecha >= :inicio', { inicio: rango.inicio })
+      .andWhere('re.fecha < :finExclusivo', { finExclusivo: rango.finExclusivo });
+    filtrarSede(qb, 're', sedeId);
+    const row = await qb.getRawOne();
+    const aprobados = parseInt(row.aprobados, 10) || 0;
+    const total = parseInt(row.total, 10) || 0;
+    return { clave, valorActual: total > 0 ? parseFloat(((aprobados / total) * 100).toFixed(1)) : 0 };
+  }
+
+  if (clave === 'uso_flota') {
+    const qb = AppDataSource.getRepository('Vehiculo').createQueryBuilder('v')
+      .select([
+        "COUNT(*) FILTER (WHERE v.estado IN ('en_sesion','mantenimiento')) AS ocupados",
+        'COUNT(*) AS total',
+      ]);
+    if (sedeId) qb.where('v.sede_id = :sedeId', { sedeId });
+    const row = await qb.getRawOne();
+    const ocupados = parseInt(row.ocupados, 10) || 0;
+    const total = parseInt(row.total, 10) || 0;
+    return { clave, valorActual: total > 0 ? parseFloat(((ocupados / total) * 100).toFixed(1)) : 0 };
+  }
+
+  if (clave === 'vehiculos_disponibles') {
+    const qb = AppDataSource.getRepository('Vehiculo').createQueryBuilder('v')
+      .select('COUNT(*)', 'total')
+      .where("v.estado = 'disponible'");
+    filtrarSede(qb, 'v', sedeId);
+    const row = await qb.getRawOne();
+    return { clave, valorActual: parseInt(row.total, 10) || 0 };
+  }
+
+  return { clave, valorActual: 0 };
+}
+
+async function enriquecerMetaConProgreso(meta) {
+  const { clave, valorActual } = await calcularValorActualMeta(meta);
+  const valorEsperado = Number(meta.valor_esperado) || 0;
+  const progreso = valorEsperado > 0 ? Math.min((valorActual / valorEsperado) * 100, 999) : 0;
+  const brecha = Math.max(valorEsperado - valorActual, 0);
+
+  return {
+    ...meta,
+    metrica_clave: clave,
+    valor_actual: valorActual,
+    progreso_porcentaje: parseFloat(progreso.toFixed(1)),
+    brecha,
+    estado_progreso: valorEsperado > 0 && valorActual >= valorEsperado ? 'cumplida' : 'en_progreso',
+  };
+}
+
 const SEMANA_COMPLETA = [
   { dia: 'Lunes',     diaNum: 1 },
   { dia: 'Martes',    diaNum: 2 },
@@ -441,7 +596,8 @@ async function obtenerMetas(filtros = {}) {
   if (filtros.mes_anio) qb.where('m.mes_anio = :ma', { ma: filtros.mes_anio });
   if (filtros.sede_id) qb.andWhere('m.sede_id = :si', { si: filtros.sede_id });
   qb.orderBy('m.creado_en', 'DESC');
-  return qb.getRawMany();
+  const metas = await qb.getRawMany();
+  return Promise.all(metas.map(enriquecerMetaConProgreso));
 }
 
 async function actualizarMeta(id, datos) {

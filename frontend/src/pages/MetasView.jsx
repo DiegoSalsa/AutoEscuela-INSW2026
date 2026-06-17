@@ -3,6 +3,60 @@ import { dashboardService } from '../service/dashboard.Service.js';
 
 const MESES_LABEL = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
+const METRICAS_DISPONIBLES = [
+  { value: 'clases_completadas', label: 'Clases Completadas', unidad: 'clases' },
+  { value: 'ingresos', label: 'Ingresos', unidad: 'CLP' },
+  { value: 'estudiantes_activos', label: 'Estudiantes Activos', unidad: 'estudiantes' },
+  { value: 'nuevos_estudiantes', label: 'Nuevos Estudiantes', unidad: 'estudiantes' },
+  { value: 'aprobados', label: 'Examenes Aprobados', unidad: 'examenes' },
+  { value: 'tasa_aprobacion', label: 'Tasa de Aprobacion', unidad: '%' },
+  { value: 'uso_flota', label: 'Uso de Flota', unidad: '%' },
+  { value: 'vehiculos_disponibles', label: 'Vehiculos Disponibles', unidad: 'vehiculos' },
+];
+
+const METRICAS_ALIAS = {
+  clases_completadas: ['clases completadas', 'clases'],
+  ingresos: ['ingresos', 'ventas'],
+  estudiantes_activos: ['estudiantes activos', 'alumnos activos'],
+  nuevos_estudiantes: ['nuevos estudiantes', 'nuevos alumnos', 'matriculas'],
+  aprobados: ['aprobados', 'examenes aprobados'],
+  tasa_aprobacion: ['tasa aprobacion', 'tasa de aprobacion'],
+  uso_flota: ['uso flota', 'uso de flota', 'ocupacion flota'],
+  vehiculos_disponibles: ['vehiculos disponibles', 'autos disponibles'],
+};
+
+function normalizarTexto(valor = '') {
+  return String(valor)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function metricaInfo(nombre) {
+  const normalizada = normalizarTexto(nombre);
+  const claveAlias = Object.entries(METRICAS_ALIAS)
+    .find(([clave, alias]) => clave === normalizada || alias.includes(normalizada))?.[0];
+  return METRICAS_DISPONIBLES.find((m) => m.value === nombre || m.value === claveAlias || normalizarTexto(m.label) === normalizada) || {
+    value: nombre,
+    label: nombre || 'Sin nombre',
+    unidad: '',
+  };
+}
+
+function formatValor(valor, unidad) {
+  const numero = Number(valor) || 0;
+  if (unidad === 'CLP') {
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      maximumFractionDigits: 0,
+    }).format(numero);
+  }
+  if (unidad === '%') return `${numero}%`;
+  return new Intl.NumberFormat('es-CL', { maximumFractionDigits: 1 }).format(numero);
+}
+
 function sedeLabel(sedeActiva) {
   if (sedeActiva === 'all') return 'General';
   return sedeActiva === '1' ? 'Central' : 'Norte';
@@ -20,8 +74,13 @@ function MetaCard({ meta, onEditar, onEliminar }) {
   }
 
   const sedeNombre = meta.sede_nombre || 'Todas las sedes';
-  const metricaNombre = meta.metrica_nombre || 'Sin nombre';
-  const valorEsperado = meta.valor_esperado ?? 0;
+  const info = metricaInfo(meta.metrica_nombre);
+  const metricaNombre = info.label;
+  const valorEsperado = Number(meta.valor_esperado) || 0;
+  const valorActual = Number(meta.valor_actual) || 0;
+  const progreso = Math.min(Number(meta.progreso_porcentaje) || 0, 100);
+  const brecha = Number(meta.brecha) || 0;
+  const cumplida = meta.estado_progreso === 'cumplida';
 
   return (
     <div className="border border-gray-200 rounded-lg p-5 relative hover:shadow-md transition-shadow group">
@@ -65,21 +124,35 @@ function MetaCard({ meta, onEditar, onEliminar }) {
         <span>{sedeNombre}</span>
       </div>
 
-      <h3 className="text-xl font-bold font-headline text-gray-800 mb-1">{metricaNombre}</h3>
-      <div className="flex items-end space-x-2">
-        <span className="text-3xl font-black text-primary">{valorEsperado}</span>
-        <span className="text-sm text-gray-500 mb-1">objetivo</span>
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-xl font-bold font-headline text-gray-800 mb-1">{metricaNombre}</h3>
+        <span className={`text-[11px] font-bold px-2 py-1 rounded-full ${cumplida ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+          {cumplida ? 'Cumplida' : 'En progreso'}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-3 mt-3">
+        <div>
+          <span className="block text-xs text-gray-500 mb-1">Actual</span>
+          <span className="text-2xl font-black text-primary">{formatValor(valorActual, info.unidad)}</span>
+        </div>
+        <div>
+          <span className="block text-xs text-gray-500 mb-1">Objetivo</span>
+          <span className="text-2xl font-black text-gray-800">{formatValor(valorEsperado, info.unidad)}</span>
+        </div>
       </div>
 
       {/* Progreso */}
       <div className="mt-4">
         <div className="flex justify-between text-xs mb-1">
           <span className="text-gray-500">Progreso actual</span>
-          <span className="font-medium text-tertiary">0%</span>
+          <span className={`font-medium ${cumplida ? 'text-green-600' : 'text-tertiary'}`}>{Number(meta.progreso_porcentaje || 0).toFixed(1)}%</span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-1.5">
-          <div className="bg-tertiary h-1.5 rounded-full" style={{ width: '0%' }}></div>
+          <div className={`${cumplida ? 'bg-green-500' : 'bg-tertiary'} h-1.5 rounded-full transition-all`} style={{ width: `${progreso}%` }}></div>
         </div>
+        <p className="text-xs text-gray-500 mt-2">
+          {cumplida ? 'Meta alcanzada' : `Faltan ${formatValor(brecha, info.unidad)}`}
+        </p>
       </div>
     </div>
   );
@@ -122,7 +195,7 @@ export default function MetasView({ sedeActiva }) {
 
   const iniciarEdicion = useCallback((meta) => {
     setEditingId(meta.id);
-    setMetrica(meta.metrica_nombre || '');
+    setMetrica(metricaInfo(meta.metrica_nombre).value || '');
     setValor(meta.valor_esperado ?? '');
     if (meta.mes_anio) {
       const parts = meta.mes_anio.split('-');
@@ -145,7 +218,7 @@ export default function MetasView({ sedeActiva }) {
     const mesAnio = `${anio}-${String(mesNum).padStart(2, '0')}`;
 
     const payload = {
-      metrica_nombre: metrica.trim(),
+      metrica_nombre: metrica,
       valor_esperado: Number(valor),
       mes_anio: mesAnio,
       sede_id: sedeActiva === 'all' ? null : Number(sedeActiva),
@@ -219,14 +292,17 @@ export default function MetasView({ sedeActiva }) {
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
           <div className="col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">Métrica</label>
-            <input
-              type="text"
+            <select
               value={metrica}
               onChange={(e) => setMetrica(e.target.value)}
-              placeholder="Ej. Nuevos Alumnos"
               className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-tertiary focus:border-tertiary outline-none"
               required
-            />
+            >
+              <option value="">Selecciona una metrica</option>
+              {METRICAS_DISPONIBLES.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Valor Objetivo</label>
