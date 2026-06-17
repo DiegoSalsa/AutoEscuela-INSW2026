@@ -27,6 +27,10 @@ export default function MainLayout({ user, onLogout }) {
         return <MetasView sedeActiva={sedeActiva} user={user} />;
       case 'agenda':
         return <ReservasView user={user} />;
+      case 'estudiantes':
+        return <Proximamente modulo="estudiantes" />;
+      case 'flota':
+        return <Proximamente modulo="flota" />;
       default:
         return <Proximamente />;
     }
