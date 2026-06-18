@@ -11,14 +11,11 @@ const { initMailer } = require('./services/notificaciones.Service');
 const { iniciarScheduler } = require('./jobs/scheduler');
 
 const app = express();
-const PORT = Number(process.env.PORT) || 1347;
-const HOST = process.env.HOST || '0.0.0.0';
+const PORT = 1347;
+const HOST = '0.0.0.0';
 
-// Servidor HTTP (requerido por Socket.io)
+// Unico servidor HTTP compartido por Express y Socket.io.
 const server = http.createServer(app);
-
-
-initSocket(server);
 
 // Middlewares
 app.use(cors());
@@ -31,14 +28,15 @@ app.get('/', (_req, res) => {
   res.json({ status: 'ok', message: 'AutoDrive Academy — API' });
 });
 
+// WebSockets anclados al mismo servidor HTTP para compartir el puerto 1347.
+initSocket(server);
+
 // Inicializar TypeORM y levantar el servidor
 AppDataSource.initialize()
   .then(async () => {
     console.log('TypeORM conectado a PostgreSQL');
 
-
     await initMailer();
-
 
     iniciarScheduler();
 
