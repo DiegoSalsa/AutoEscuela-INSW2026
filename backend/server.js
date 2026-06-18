@@ -11,7 +11,7 @@ const { initMailer } = require('./services/notificaciones.Service');
 const { iniciarScheduler } = require('./jobs/scheduler');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 1347;
 const HOST = process.env.HOST || '0.0.0.0';
 
 // Servidor HTTP (requerido por Socket.io)
