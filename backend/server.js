@@ -11,7 +11,7 @@ const { initMailer } = require('./services/notificaciones.Service');
 const { iniciarScheduler } = require('./jobs/scheduler');
 
 const app = express();
-const PORT = 1347;
+const PORT = 80;
 const HOST = '0.0.0.0';
 
 // Unico servidor HTTP compartido por Express y Socket.io.
