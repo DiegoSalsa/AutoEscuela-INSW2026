@@ -15,6 +15,10 @@ const AppDataSource = new DataSource({
   synchronize: true,
   logging: false,
   entities: Object.values(entities),
+  // Zona horaria de Chile para que NOW() y los timestamps sean correctos
+  extra: {
+    options: "-c timezone=America/Santiago",
+  },
 });
 
 module.exports = { AppDataSource, ...entities };

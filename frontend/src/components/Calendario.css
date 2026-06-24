@@ -87,3 +87,24 @@
 .cell.selected .dot {
   display: none;
 }
+
+.cell.full {
+  background-color: #fee2e2;
+  color: #ef4444;
+  cursor: not-allowed;
+  font-weight: bold;
+}
+
+.cell.full:hover {
+  background-color: #fecaca;
+}
+
+.cell.full .dot {
+  display: none;
+}
+
+.cell.today {
+  border: 2px solid var(--primary-color, #002366);
+  color: var(--primary-color, #002366);
+  font-weight: bold;
+}

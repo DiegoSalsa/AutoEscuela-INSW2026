@@ -22,6 +22,7 @@ export default function BloqueHorarios({ fechaSeleccionada, horariosOcupados, ho
   const isBloqueOcupado = (bloque) => {
     if (!fechaSeleccionada) return true;
 
+
     // Si la fecha es hoy, bloquear horas pasadas (hora local del navegador)
     const now = new Date();
     const hoyStr = format(now, 'yyyy-MM-dd');

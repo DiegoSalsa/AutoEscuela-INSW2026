@@ -1,5 +1,6 @@
-
-const API_URL = 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_BASE_URL 
+  ? import.meta.env.VITE_BASE_URL.replace(/\/$/, '') + '/api'
+  : '/api';
 
 // Helper para hacer peticiones al backend
 async function fetchAPI(endpoint, options = {}) {
@@ -42,9 +43,9 @@ export async function getHorariosOcupados(fecha, sedeId, instructorId, vehiculoI
     si: sedeId,
   });
 
-  if (instructorId)  query.append('ii', instructorId);
-  if (vehiculoId)    query.append('vi', vehiculoId);
-  if (estudianteId)  query.append('ei', estudianteId);
+  if (instructorId) query.append('ii', instructorId);
+  if (vehiculoId) query.append('vi', vehiculoId);
+  if (estudianteId) query.append('ei', estudianteId);
 
   return fetchAPI(`/reservas/ocupados?${query.toString()}`);
 }
@@ -56,7 +57,14 @@ export async function getTiposClase() {
 
 // Crear una nueva reserva con llave de idempotencia
 export async function crearReserva(reservaData, idempotencyKey) {
-  const key = idempotencyKey || crypto.randomUUID();
+  // crypto.randomUUID() solo funciona en HTTPS; usamos fallback para HTTP
+  const generarUUID = () =>
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+    });
+
+  const key = idempotencyKey || generarUUID();
 
   return fetchAPI('/reservas', {
     method: 'POST',
@@ -90,8 +98,11 @@ export async function getVehiculos(sedeId) {
 
 export async function getReservas(filtros = {}) {
   const query = new URLSearchParams();
-  if (filtros.sedeId)       query.append('s', filtros.sedeId);
+  if (filtros.sedeId) query.append('s', filtros.sedeId);
   if (filtros.estudianteId) query.append('e', filtros.estudianteId);
+  if (filtros.fechaInicio) query.append('fi', filtros.fechaInicio);
+  if (filtros.fechaFin) query.append('ff', filtros.fechaFin);
+  
   const qs = query.toString();
   return fetchAPI(`/reservas${qs ? '?' + qs : ''}`);
 }
@@ -106,6 +117,21 @@ export async function actualizarReserva(id, reservaData, rol = 'estudiante') {
     headers: { 'x-rol': rol },
     body: JSON.stringify(reservaData),
   });
+}
+
+export async function suspenderReservasVehiculo(vehiculoId) {
+  return fetchAPI(`/reservas/vehiculo/${vehiculoId}/suspender`, {
+    method: 'PATCH',
+  });
+}
+
+export async function getDiasOcupados(mes, anio, sedeId, instructorId, vehiculoId, estudianteId) {
+  const params = new URLSearchParams({ mes, anio });
+  if (sedeId) params.append('si', sedeId);
+  if (instructorId) params.append('ii', instructorId);
+  if (vehiculoId) params.append('vi', vehiculoId);
+  if (estudianteId) params.append('ei', estudianteId);
+  return fetchAPI(`/reservas/dias-ocupados?${params.toString()}`);
 }
 
 export async function cancelarReserva(id, rol = 'estudiante') {

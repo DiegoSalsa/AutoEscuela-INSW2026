@@ -1,3 +1,5 @@
+// Zona horaria: Santiago, Chile
+process.env.TZ = 'America/Santiago';
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
@@ -9,13 +11,11 @@ const { initMailer } = require('./services/notificaciones.Service');
 const { iniciarScheduler } = require('./jobs/scheduler');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 80;
+const HOST = '0.0.0.0';
 
-// Servidor HTTP (requerido por Socket.io)
+// Unico servidor HTTP compartido por Express y Socket.io.
 const server = http.createServer(app);
-
-
-initSocket(server);
 
 // Middlewares
 app.use(cors());
@@ -28,20 +28,21 @@ app.get('/', (_req, res) => {
   res.json({ status: 'ok', message: 'AutoDrive Academy — API' });
 });
 
+// WebSockets anclados al mismo servidor HTTP para compartir el puerto 1347.
+initSocket(server);
+
 // Inicializar TypeORM y levantar el servidor
 AppDataSource.initialize()
   .then(async () => {
     console.log('TypeORM conectado a PostgreSQL');
 
-
     await initMailer();
-
 
     iniciarScheduler();
 
-    server.listen(PORT, () => {
-      console.log(`Servidor corriendo en http://localhost:${PORT}`);
-      console.log(`WebSocket escuchando en ws://localhost:${PORT}`);
+    server.listen(PORT, HOST, () => {
+      console.log(`Servidor corriendo en http://${HOST}:${PORT}`);
+      console.log(`WebSocket escuchando en ws://${HOST}:${PORT}`);
     });
   })
   .catch((err) => {

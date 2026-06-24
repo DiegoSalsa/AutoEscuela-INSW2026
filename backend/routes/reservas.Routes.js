@@ -6,6 +6,7 @@ const { idempotency } = require('../middleware/idempotency.middleware');
 
 // Todas las rutas SIN autenticación JWT
 router.post('/', idempotency, validation.validarCreacionReserva, controller.crearReserva);
+router.get('/dias-ocupados', controller.obtenerDiasOcupados);
 router.get('/tipos-clase', controller.obtenerTiposClase);
 router.get('/ocupados', controller.obtenerHorariosOcupados);
 router.get('/', validation.validarFiltrosCalendario, controller.obtenerReservas);

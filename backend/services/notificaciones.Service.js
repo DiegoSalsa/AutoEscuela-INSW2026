@@ -2,6 +2,7 @@ const { Resend } = require('resend');
 
 let resend = null;
 
+
 const initMailer = async () => {
   const apiKey = process.env.RESEND_API_KEY;
   if (apiKey) {
@@ -9,6 +10,7 @@ const initMailer = async () => {
     console.log('✅ Resend configurado correctamente');
   } else {
     console.warn('⚠️ RESEND_API_KEY no configurada — emails se mostrarán solo en consola (modo desarrollo)');
+
   }
 };
 
@@ -82,7 +84,8 @@ const bloqueInfoTipoClase = (tipoClase) => {
     <td style="padding:10px 16px;"><span style="display:inline-block;background-color:${color}15;color:${color};padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;border:1px solid ${color}30;">${tipoClase.nombre}</span></td></tr>`;
 };
 
-// ──────────────── Funciones de envío específicas (solo cambia que usan await enviarEmail) ────────────────
+
+// Funciones de envío específicas
 const enviarConfirmacion = async (reserva, emailEstudiante, sede, tipoClase) => {
   const fecha = new Date(reserva.fecha_inicio);
   const fechaFormateada = fecha.toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });

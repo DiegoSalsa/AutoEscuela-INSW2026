@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getSedes, getEstudiantes, getInstructores, getVehiculos } from '../service/reservas.Service';
 import './SelectorRecursos.css';
 
-export default function SelectorRecursos({ selecciones, onSelect, requiereVehiculo = true }) {
+export default function SelectorRecursos({ selecciones, onSelect, requiereVehiculo = true, user }) {
   const [sedes, setSedes] = useState([]);
   const [estudiantes, setEstudiantes] = useState([]);
   const [instructores, setInstructores] = useState([]);
@@ -11,11 +11,15 @@ export default function SelectorRecursos({ selecciones, onSelect, requiereVehicu
 
   // Cargar sedes al montar
   useEffect(() => {
+    if (user && user.rol === 'estudiante') {
+      setCargando(false);
+      return;
+    }
     getSedes()
       .then(setSedes)
       .catch(console.error)
       .finally(() => setCargando(false));
-  }, []);
+  }, [user]);
 
   // Recargar estudiantes, instructores y vehículos cuando cambia la sede
   useEffect(() => {
@@ -27,7 +31,7 @@ export default function SelectorRecursos({ selecciones, onSelect, requiereVehicu
     }
 
     Promise.all([
-      getEstudiantes(selecciones.sedeId),
+      user?.rol !== 'estudiante' ? getEstudiantes(selecciones.sedeId) : Promise.resolve([]),
       getInstructores(selecciones.sedeId),
       getVehiculos(selecciones.sedeId),
     ])
@@ -37,7 +41,7 @@ export default function SelectorRecursos({ selecciones, onSelect, requiereVehicu
         setVehiculos(veh);
       })
       .catch(console.error);
-  }, [selecciones.sedeId]);
+  }, [selecciones.sedeId, user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -57,23 +61,29 @@ export default function SelectorRecursos({ selecciones, onSelect, requiereVehicu
     return <div className="selector-recursos"><p className="text-muted text-sm">Cargando recursos...</p></div>;
   }
 
+  const isAdmin = !user || user.rol === 'admin';
+
   return (
     <div className="selector-recursos">
-      <div className="form-group">
-        <label>Sede</label>
-        <select name="sedeId" value={selecciones.sedeId || ''} onChange={handleChange}>
-          <option value="">Seleccione Sede...</option>
-          {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-        </select>
-      </div>
+      {isAdmin && (
+        <>
+          <div className="form-group">
+            <label>Sede</label>
+            <select name="sedeId" value={selecciones.sedeId || ''} onChange={handleChange}>
+              <option value="">Seleccione Sede...</option>
+              {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+            </select>
+          </div>
 
-      <div className="form-group">
-        <label>Estudiante</label>
-        <select name="estudianteId" value={selecciones.estudianteId || ''} onChange={handleChange} disabled={!selecciones.sedeId}>
-          <option value="">Seleccione Estudiante...</option>
-          {estudiantes.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-        </select>
-      </div>
+          <div className="form-group">
+            <label>Estudiante</label>
+            <select name="estudianteId" value={selecciones.estudianteId || ''} onChange={handleChange} disabled={!selecciones.sedeId}>
+              <option value="">Seleccione Estudiante...</option>
+              {estudiantes.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+            </select>
+          </div>
+        </>
+      )}
 
       <div className="form-group">
         <label>Instructor</label>

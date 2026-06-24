@@ -29,12 +29,17 @@ export default function ReservasList({ rol, estudianteId, onEditar }) {
   const [error, setError] = useState(null);
   const [cancelando, setCancelando] = useState(null);
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
+  const [fechaInicioBuscador, setFechaInicioBuscador] = useState('');
+  const [fechaFinBuscador, setFechaFinBuscador] = useState('');
 
   const cargar = useCallback(async () => {
     setCargando(true);
     setError(null);
     try {
       const filtros = esAdmin ? {} : { estudianteId };
+      if (fechaInicioBuscador) filtros.fechaInicio = fechaInicioBuscador;
+      if (fechaFinBuscador) filtros.fechaFin = fechaFinBuscador;
+      
       const data = await getReservas(filtros);
       setReservas(data);
     } catch (e) {
@@ -42,7 +47,7 @@ export default function ReservasList({ rol, estudianteId, onEditar }) {
     } finally {
       setCargando(false);
     }
-  }, [esAdmin, estudianteId]);
+  }, [esAdmin, estudianteId, fechaInicioBuscador, fechaFinBuscador]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -162,6 +167,35 @@ export default function ReservasList({ rol, estudianteId, onEditar }) {
 
   return (
     <div className="rl-container">
+
+      {/* ── Buscador de Fechas ────────────────────────────────────────────── */}
+      <div className="rl-search-panel">
+        <div className="rl-search-header">Búsqueda</div>
+        <div className="rl-search-body">
+          <div className="rl-search-inputs">
+            <span className="rl-search-label">Fecha Inicio/Fin</span>
+            <input 
+              type="date" 
+              className="rl-search-input"
+              value={fechaInicioBuscador}
+              onChange={(e) => setFechaInicioBuscador(e.target.value)}
+            />
+            <span className="rl-search-separator">⇄</span>
+            <input 
+              type="date" 
+              className="rl-search-input"
+              value={fechaFinBuscador}
+              onChange={(e) => setFechaFinBuscador(e.target.value)}
+            />
+          </div>
+          <button className="rl-btn rl-search-btn" onClick={() => cargar()}>
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4 mr-2 inline">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            Buscar
+          </button>
+        </div>
+      </div>
 
       {/* ── Reservas activas ──────────────────────────────────────────────── */}
       <div className="rl-section">

@@ -7,6 +7,7 @@
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "lucide-react": "^1.12.0",
+    "nodemon": "^3.1.14",
     "react": "^19.2.5",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.5",
@@ -22,9 +23,9 @@
     "vite": "^5.1.4"
   },
   "scripts": {
-    "start": "vite",
+    "start": "vite --host 0.0.0.0 --port 1348 --strictPort",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview --host 0.0.0.0 --port 1348 --strictPort"
   },
   "browserslist": {
     "production": [

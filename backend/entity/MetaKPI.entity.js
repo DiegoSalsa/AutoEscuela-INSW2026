@@ -12,13 +12,16 @@ const MetaKPI = new EntitySchema({
     metrica_nombre: {
       type: 'varchar',
       length: 120,
+      nullable: true,
     },
     valor_esperado: {
       type: 'int',
+      nullable: true,
     },
     mes_anio: {
       type: 'varchar',
       length: 7,
+      nullable: true,
     },
     sede_id: {
       type: 'int',
@@ -38,7 +41,6 @@ const MetaKPI = new EntitySchema({
       type: 'many-to-one',
       target: 'Sede',
       joinColumn: { name: 'sede_id' },
-      nullable: true,
     },
   },
 });
