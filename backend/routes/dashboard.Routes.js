@@ -14,6 +14,7 @@ router.get('/aprobados-reprobados', validarSedeId, ctrl.getAprobadosReprobados);
 router.get('/ocupacion-sede',    validarSedeId, ctrl.getOcupacionSede);
 router.get('/ingresos',          validarSedeId, ctrl.getIngresos);
 router.get('/rendimiento-mes',   validarSedeId, ctrl.getRendimientoMes);
+router.get('/instructores',      validarSedeId, ctrl.getInstructores);
 router.post('/reporte-avanzado', ctrl.generarReporte);
 
 // ── CRUD Metas KPI ──

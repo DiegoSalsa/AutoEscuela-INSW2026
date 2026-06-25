@@ -163,10 +163,25 @@ const obtenerEstudiantes = async (req, res) => {
 const obtenerInstructores = async (req, res) => {
   try {
     const { sedeId } = req.query;
-    const where = { rol: 'instructor', estado: 'activo' };
-    if (sedeId) where.sede_id = parseInt(sedeId, 10);
     const repo = AppDataSource.getRepository('Usuario');
-    const instructores = await repo.find({ where, order: { nombre: 'ASC' } });
+    const qb = repo.createQueryBuilder('u')
+      .select([
+        'u.id AS id',
+        'u.nombre AS nombre',
+        'u.email AS email',
+        'u.telefono AS telefono',
+        'u.rut AS rut',
+        'u.rol AS rol',
+        'u.estado AS estado',
+        'u.sede_id AS sede_id',
+        'u.especialidad AS especialidad',
+      ])
+      .where("u.rol = 'instructor'")
+      .andWhere("u.estado = 'activo'");
+
+    if (sedeId) qb.andWhere('u.sede_id = :sedeId', { sedeId: parseInt(sedeId, 10) });
+
+    const instructores = await qb.orderBy('u.nombre', 'ASC').getRawMany();
     res.json(instructores);
   } catch (error) {
     console.error('Error en obtenerInstructores:', error.message);

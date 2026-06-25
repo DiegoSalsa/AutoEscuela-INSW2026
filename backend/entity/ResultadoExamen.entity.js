@@ -10,6 +10,7 @@ const ResultadoExamen = new EntitySchema({
     tipo_examen: { type: 'varchar', length: 30, default: 'practico', nullable: true },
     fecha: { type: 'date', nullable: true },
     sede_id: { type: 'int', nullable: true },
+    demo_seed: { type: 'varchar', nullable: true },
   },
   relations: {
     estudiante: {

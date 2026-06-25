@@ -88,10 +88,10 @@ export default function ReservasView({ user }) {
       const data = await getReservaById(reserva.id);
       setEditandoId(data.id);
       setSelecciones({
-        sedeId:       data.sede_id,
+        sedeId: data.sede_id,
         estudianteId: data.estudiante_id,
         instructorId: data.instructor_id,
-        vehiculoId:   data.vehiculo_id,
+        vehiculoId: data.vehiculo_id,
       });
       setTipoClaseId(data.tipo_clase_id);
       setFecha(new Date(data.fecha_inicio));
@@ -102,7 +102,7 @@ export default function ReservasView({ user }) {
       setHora({
         id: `${pad(fi.getHours())}:${pad(fi.getMinutes())}`,
         horaInicio: `${pad(fi.getHours())}:${pad(fi.getMinutes())}`,
-        horaFin:    `${pad(ff.getHours())}:${pad(ff.getMinutes())}`,
+        horaFin: `${pad(ff.getHours())}:${pad(ff.getMinutes())}`,
       });
       setError(null);
       setExito(false);
@@ -128,13 +128,13 @@ export default function ReservasView({ user }) {
     setError(null);
     const dateStr = format(fecha, 'yyyy-MM-dd');
     const fechaInicio = `${dateStr}T${hora.horaInicio}:00`;
-    const fechaFin    = `${dateStr}T${hora.horaFin}:00`;
+    const fechaFin = `${dateStr}T${hora.horaFin}:00`;
 
     try {
       const payload = {
         estudianteId: selecciones.estudianteId,
         instructorId: selecciones.instructorId,
-        sedeId:       selecciones.sedeId,
+        sedeId: selecciones.sedeId,
         tipoClaseId,
         fechaInicio,
         fechaFin,

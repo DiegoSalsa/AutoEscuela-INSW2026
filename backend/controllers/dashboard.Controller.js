@@ -221,10 +221,23 @@ const getRendimientoMes = async (req, res) => {
   }
 };
 
+// GET /api/dashboard/instructores?sedeId=
+const getInstructores = async (req, res) => {
+  try {
+    const sedeId = req.query.sedeId || null;
+    const data = await dashboardService.getInstructores(sedeId);
+    res.json(data);
+  } catch (error) {
+    console.error('Error en getInstructores:', error.message);
+    res.status(500).json({ error: 'Error al obtener los instructores' });
+  }
+};
+
 module.exports = {
   getKPIs, getClasesHoy, getClasesProximas, getVehiculos,
   getGraficoSemana, getUsoFlota, generarReporte,
   getAprobadosReprobados, getOcupacionSede, getIngresos, getRendimientoMes,
   crearMeta, obtenerMetas, actualizarMeta, eliminarMeta,
+  getInstructores,
 };
 
