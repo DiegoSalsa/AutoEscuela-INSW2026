@@ -10,6 +10,7 @@ const Pago = new EntitySchema({
     monto: { type: 'decimal', precision: 10, scale: 2, nullable: true },
     fecha: { type: 'date', nullable: true },
     sede_id: { type: 'int', nullable: true },
+    demo_seed: { type: 'varchar', nullable: true },
   },
   relations: {
     estudiante: {

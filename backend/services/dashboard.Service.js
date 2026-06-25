@@ -158,13 +158,13 @@ async function enriquecerMetaConProgreso(meta) {
 }
 
 const SEMANA_COMPLETA = [
-  { dia: 'Lunes',     diaNum: 1 },
-  { dia: 'Martes',    diaNum: 2 },
+  { dia: 'Lunes', diaNum: 1 },
+  { dia: 'Martes', diaNum: 2 },
   { dia: 'Miércoles', diaNum: 3 },
-  { dia: 'Jueves',    diaNum: 4 },
-  { dia: 'Viernes',   diaNum: 5 },
-  { dia: 'Sábado',    diaNum: 6 },
-  { dia: 'Domingo',   diaNum: 7 },
+  { dia: 'Jueves', diaNum: 4 },
+  { dia: 'Viernes', diaNum: 5 },
+  { dia: 'Sábado', diaNum: 6 },
+  { dia: 'Domingo', diaNum: 7 },
 ];
 
 // KPIs — 4 queries en paralelo con Promise.all
@@ -252,7 +252,7 @@ async function getVehiculos(sedeId) {
     .select([
       'v.id AS id', 'v.patente AS patente', 'v.modelo AS modelo',
       'v.estado AS estado', 'v.sede_id AS sede_id', 's.nombre AS sede_nombre',
-      'v.kilometraje_actual AS kilometraje_actual', 
+      'v.kilometraje_actual AS kilometraje_actual',
       'v.km_ultimo_aceite AS km_ultimo_aceite',
       'v.km_ultimos_frenos AS km_ultimos_frenos',
       'v.fecha_revision_tecnica AS fecha_revision_tecnica'
@@ -261,7 +261,7 @@ async function getVehiculos(sedeId) {
 
   if (sedeId) qb.where('v.sede_id = :sedeId', { sedeId });
   qb.orderBy('s.nombre', 'ASC').addOrderBy('v.patente', 'ASC');
-  
+
   const rows = await qb.getRawMany();
   //Mapeamos los resultados para inyectar las alertas 
   return rows.map(auto => ({
@@ -343,8 +343,10 @@ async function getUsoFlota(sedeId) {
 
 // Reporte avanzado (expandido con nuevas metricas)
 async function generarReporteAvanzado(fi, ff, sedeId, metricas) {
-  const rep = { periodo: { fechaInicio: fi, fechaFin: ff }, sedeId: sedeId || 'todas',
-    generadoEn: new Date().toISOString(), metricas: {} };
+  const rep = {
+    periodo: { fechaInicio: fi, fechaFin: ff }, sedeId: sedeId || 'todas',
+    generadoEn: new Date().toISOString(), metricas: {}
+  };
   const proms = []; const keys = [];
 
   if (metricas.includes('clases_completadas')) {
@@ -620,52 +622,52 @@ async function eliminarMeta(id) {
 }
 
 //motor de reglas para alertas
- const obtenerAlertasVehiculo = (vehiculo) => {
-    const UMBRAL_ACEITE = 10000; 
-    const UMBRAL_FRENOS = 20000; 
-    const alertas = [];
+const obtenerAlertasVehiculo = (vehiculo) => {
+  const UMBRAL_ACEITE = 10000;
+  const UMBRAL_FRENOS = 20000;
+  const alertas = [];
 
-    //alerta de aceite
-    if (vehiculo.kilometraje_actual - vehiculo.km_ultimo_aceite >= UMBRAL_ACEITE) {
-        alertas.push({ item: "Aceite", nivel: "Critico", mensaje: "Requiere cambio inmediato" });
+  //alerta de aceite
+  if (vehiculo.kilometraje_actual - vehiculo.km_ultimo_aceite >= UMBRAL_ACEITE) {
+    alertas.push({ item: "Aceite", nivel: "Critico", mensaje: "Requiere cambio inmediato" });
+  }
+
+  //alerta de frenos
+  if (vehiculo.kilometraje_actual - vehiculo.km_ultimos_frenos >= UMBRAL_FRENOS) {
+    alertas.push({ item: "Frenos", nivel: "Advertencia", mensaje: "Revision preventiva necesaria" });
+  }
+
+  //alerta Revision tecnica
+  if (vehiculo.fecha_revision_tecnica) {
+    const fechaActual = new Date();
+    const fechaRevision = new Date(vehiculo.fecha_revision_tecnica);
+    const diferenciaDias = (fechaRevision - fechaActual) / (1000 * 60 * 60 * 24);
+
+    if (diferenciaDias <= 30) {
+      alertas.push({
+        item: "Revision Tecnica",
+        nivel: "Urgente",
+        mensaje: `Vence en ${Math.round(diferenciaDias)} dias`
+      });
     }
+  }
 
-    //alerta de frenos
-    if (vehiculo.kilometraje_actual - vehiculo.km_ultimos_frenos >= UMBRAL_FRENOS) {
-        alertas.push({ item: "Frenos", nivel: "Advertencia", mensaje: "Revision preventiva necesaria" });
-    }
-
-    //alerta Revision tecnica
-    if (vehiculo.fecha_revision_tecnica) {
-        const fechaActual = new Date();
-        const fechaRevision = new Date(vehiculo.fecha_revision_tecnica);
-        const diferenciaDias = (fechaRevision - fechaActual) / (1000 * 60 * 60 * 24);
-
-        if (diferenciaDias <= 30) {
-            alertas.push({ 
-                item: "Revision Tecnica", 
-                nivel: "Urgente", 
-                mensaje: `Vence en ${Math.round(diferenciaDias)} dias` 
-            });
-        }
-    }
-
-    return alertas;
+  return alertas;
 };
 
-const finalizarSesionVehiculo = async (id, kmRecorridos) => { 
-    const repo = AppDataSource.getRepository('Vehiculo');
-    // Lógica para actualizar los kilómetros y liberar el vehículo
+const finalizarSesionVehiculo = async (id, kmRecorridos) => {
+  const repo = AppDataSource.getRepository('Vehiculo');
+  // Lógica para actualizar los kilómetros y liberar el vehículo
   try {
     const vehiculoRepository = AppDataSource.getRepository("Vehiculo");
     const vehiculo = await vehiculoRepository.findOneBy({ id: parseInt(id) });
-    
+
     if (vehiculo) {
       // Sumamos los kilómetros recorridos al total actual
       vehiculo.kilometraje_actual += parseInt(kmRecorridos);
       // Cambiamos el estado para que otros puedan usarlo
       vehiculo.estado = 'disponible';
-      
+
       return await vehiculoRepository.save(vehiculo);
     }
     throw new Error("Vehículo no encontrado");
@@ -673,12 +675,41 @@ const finalizarSesionVehiculo = async (id, kmRecorridos) => {
     console.error("Error en finalizarSesionVehiculo:", error);
     throw error;
   }
-    
+
 };
+
+// ── Instructores con metricas ──
+async function getInstructores(sedeId) {
+  // Asegurar que las columnas extendidas existan
+  await AppDataSource.query(`
+    ALTER TABLE usuarios
+      ADD COLUMN IF NOT EXISTS especialidad varchar DEFAULT NULL,
+      ADD COLUMN IF NOT EXISTS anios_experiencia int DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS calificacion_promedio numeric(2,1) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS total_clases_completadas int DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS turno varchar DEFAULT NULL
+  `);
+
+  const rows = await AppDataSource.query(`
+    SELECT
+      u.id, u.nombre, u.email, u.telefono, u.rut, u.estado, u.sede_id,
+      s.nombre AS sede_nombre,
+      u.especialidad, u.anios_experiencia,
+      u.calificacion_promedio, u.total_clases_completadas, u.turno
+    FROM usuarios u
+    INNER JOIN sedes s ON u.sede_id = s.id
+    WHERE u.rol = 'instructor'
+    ${sedeId ? 'AND u.sede_id = $1' : ''}
+    ORDER BY u.nombre ASC
+  `, sedeId ? [sedeId] : []);
+
+  return rows;
+}
 
 module.exports = {
   getKPIs, getClasesHoy, getClasesProximas, getVehiculos,
   getGraficoSemana, getUsoFlota, generarReporteAvanzado,
   getAprobadosReprobados, getOcupacionSede, getIngresos, getRendimientoMes,
-  crearMeta, obtenerMetas, actualizarMeta, eliminarMeta,obtenerAlertasVehiculo, finalizarSesionVehiculo,
+  crearMeta, obtenerMetas, actualizarMeta, eliminarMeta, obtenerAlertasVehiculo, finalizarSesionVehiculo,
+  getInstructores,
 };

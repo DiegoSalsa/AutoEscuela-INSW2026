@@ -12,6 +12,7 @@ const EstudianteModuloProgreso = new EntitySchema({
     fecha_aprobacion: { type: 'timestamp', nullable: true },
     created_at: { type: 'timestamp', createDate: true },
     updated_at: { type: 'timestamp', updateDate: true },
+    demo_seed: { type: 'varchar', nullable: true },
   },
   relations: {
     estudiante: {

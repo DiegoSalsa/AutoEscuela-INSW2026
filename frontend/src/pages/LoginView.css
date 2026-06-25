@@ -121,6 +121,22 @@
   background-color: #1e40af;
 }
 
+.btn-recepcionista {
+  background-color: #047857;
+}
+
+.btn-recepcionista:hover {
+  background-color: #059669;
+}
+
+.btn-instructor {
+  background-color: #7c3aed;
+}
+
+.btn-instructor:hover {
+  background-color: #6d28d9;
+}
+
 .btn-student {
   background-color: #2563eb;
 }

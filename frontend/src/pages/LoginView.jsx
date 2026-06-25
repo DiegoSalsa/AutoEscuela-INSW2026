@@ -42,7 +42,15 @@ export default function LoginView({ onLogin }) {
   }, [sedeId, rol]);
 
   const handleLoginAdmin = () => {
-    onLogin({ id: 'admin', label: 'Administrador / Secretaria', rol: 'admin', estudianteId: null });
+    onLogin({ id: 'admin', label: 'Administrador', rol: 'admin', estudianteId: null });
+  };
+
+  const handleLoginRecepcionista = () => {
+    onLogin({ id: 'recepcionista', label: 'Recepcionista', rol: 'recepcionista', estudianteId: null });
+  };
+
+  const handleLoginInstructor = () => {
+    onLogin({ id: 'instructor', label: 'Instructor', rol: 'instructor', estudianteId: null });
   };
 
   const handleLoginEstudiante = () => {
@@ -70,6 +78,12 @@ export default function LoginView({ onLogin }) {
             <button className="login-simple-btn btn-admin" onClick={() => setRol('admin')}>
               Soy Administrador
             </button>
+            <button className="login-simple-btn btn-recepcionista" onClick={() => setRol('recepcionista')}>
+              Soy Recepcionista
+            </button>
+            <button className="login-simple-btn btn-instructor" onClick={() => setRol('instructor')}>
+              Soy Instructor
+            </button>
             <button className="login-simple-btn btn-student" onClick={() => setRol('estudiante')}>
               Soy Estudiante
             </button>
@@ -83,6 +97,20 @@ export default function LoginView({ onLogin }) {
                 <p className="info-text">Ingreso como Administrador. Tendrás acceso total al sistema.</p>
                 <button className="login-simple-btn btn-admin" onClick={handleLoginAdmin}>
                   Entrar como Admin
+                </button>
+              </div>
+            ) : rol === 'recepcionista' ? (
+              <div className="form-group">
+                <p className="info-text">Ingreso como Recepcionista. Tendrás acceso a la gestión operativa del sistema.</p>
+                <button className="login-simple-btn btn-recepcionista" onClick={handleLoginRecepcionista}>
+                  Entrar como Recepcionista
+                </button>
+              </div>
+            ) : rol === 'instructor' ? (
+              <div className="form-group">
+                <p className="info-text">Ingreso como Instructor. Podrás ver tu módulo de instructores.</p>
+                <button className="login-simple-btn btn-instructor" onClick={handleLoginInstructor}>
+                  Entrar como Instructor
                 </button>
               </div>
             ) : (
