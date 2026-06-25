@@ -678,9 +678,38 @@ const finalizarSesionVehiculo = async (id, kmRecorridos) => {
 
 };
 
+// ── Instructores con metricas ──
+async function getInstructores(sedeId) {
+  // Asegurar que las columnas extendidas existan
+  await AppDataSource.query(`
+    ALTER TABLE usuarios
+      ADD COLUMN IF NOT EXISTS especialidad varchar DEFAULT NULL,
+      ADD COLUMN IF NOT EXISTS anios_experiencia int DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS calificacion_promedio numeric(2,1) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS total_clases_completadas int DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS turno varchar DEFAULT NULL
+  `);
+
+  const rows = await AppDataSource.query(`
+    SELECT
+      u.id, u.nombre, u.email, u.telefono, u.rut, u.estado, u.sede_id,
+      s.nombre AS sede_nombre,
+      u.especialidad, u.anios_experiencia,
+      u.calificacion_promedio, u.total_clases_completadas, u.turno
+    FROM usuarios u
+    INNER JOIN sedes s ON u.sede_id = s.id
+    WHERE u.rol = 'instructor'
+    ${sedeId ? 'AND u.sede_id = $1' : ''}
+    ORDER BY u.nombre ASC
+  `, sedeId ? [sedeId] : []);
+
+  return rows;
+}
+
 module.exports = {
   getKPIs, getClasesHoy, getClasesProximas, getVehiculos,
   getGraficoSemana, getUsoFlota, generarReporteAvanzado,
   getAprobadosReprobados, getOcupacionSede, getIngresos, getRendimientoMes,
   crearMeta, obtenerMetas, actualizarMeta, eliminarMeta, obtenerAlertasVehiculo, finalizarSesionVehiculo,
+  getInstructores,
 };

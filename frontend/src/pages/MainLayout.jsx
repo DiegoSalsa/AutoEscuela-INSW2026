@@ -4,11 +4,19 @@ import TopBar from '../components/TopBar';
 import DashboardView from './DashboardView';
 import MetasView from './MetasView';
 import ReservasView from './ReservasView';
+import InstructoresView from './InstructoresView';
+import EstudiantesView from './EstudiantesView';
+import FlotaView from './FlotaView';
 import Proximamente from '../components/Proximamente';
 
 export default function MainLayout({ user, onLogout }) {
-  // Si es estudiante, solo tiene acceso a agenda
-  const [vistaActual, setVistaActual] = useState(user?.rol === 'admin' ? 'dashboard' : 'agenda');
+  // Vista inicial según rol
+  const vistaInicial = () => {
+    if (user?.rol === 'estudiante') return 'agenda';
+    if (user?.rol === 'instructor') return 'instructores';
+    return 'dashboard';
+  };
+  const [vistaActual, setVistaActual] = useState(vistaInicial());
   const [sedeActiva, setSedeActiva] = useState('all');
 
   const handleSetVista = useCallback((vista) => {
@@ -27,10 +35,12 @@ export default function MainLayout({ user, onLogout }) {
         return <MetasView sedeActiva={sedeActiva} user={user} />;
       case 'agenda':
         return <ReservasView user={user} />;
+      case 'instructores':
+        return <InstructoresView sedeActiva={sedeActiva} />;
       case 'estudiantes':
-        return <Proximamente modulo="estudiantes" />;
+        return <EstudiantesView sedeActiva={sedeActiva} />;
       case 'flota':
-        return <Proximamente modulo="flota" />;
+        return <FlotaView sedeActiva={sedeActiva} />;
       default:
         return <Proximamente />;
     }

@@ -80,15 +80,26 @@ export default function Sidebar({ vistaActual, onSetVista, user, onLogout }) {
     if (user?.rol === 'estudiante') {
       return item.id === 'agenda';
     }
-    return true; // Admin ve todo
+    if (user?.rol === 'instructor') {
+      return item.id === 'instructores';
+    }
+    // Admin y Recepcionista ven todo
+    return true;
   });
+
+  const rolLabel = {
+    admin: 'Dashboard Analytics',
+    recepcionista: 'Panel Operativo',
+    instructor: 'Portal del Instructor',
+    estudiante: 'Portal de Estudiantes',
+  };
 
   return (
     <aside className="w-64 bg-primary text-white h-full flex flex-col font-body">
       <div className="p-6">
         <h1 className="text-2xl font-bold font-headline tracking-wider text-white">AUTODRIVE</h1>
         <p className="text-sm text-neutral/70 mt-1">
-          {user?.rol === 'admin' ? 'Dashboard Analytics' : 'Portal de Estudiantes'}
+          {rolLabel[user?.rol] || 'Dashboard Analytics'}
         </p>
       </div>
 
