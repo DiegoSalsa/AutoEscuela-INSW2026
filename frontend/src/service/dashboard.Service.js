@@ -227,6 +227,20 @@ export const dashboardService = {
       return null;
     }
   },
+
+  // GET /api/dashboard/instructores?sedeId=
+  getInstructores: async (sedeId = 'all') => {
+    try {
+      const sp = buildSedeParam(sedeId);
+      const url = `${API_BASE}/instructores${sp ? '?' + sp : ''}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Error al obtener instructores');
+      return await response.json();
+    } catch (error) {
+      console.error('getInstructores:', error);
+      return [];
+    }
+  },
 };
 
 export const obtenerInventarioFlota = async (sedeId = null) => {

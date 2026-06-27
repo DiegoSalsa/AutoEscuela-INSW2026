@@ -634,6 +634,9 @@ const finalizarSesionVehiculo = async (id, kmRecorridos) => {
 
 // â”€â”€ Instructores con metricas â”€â”€
 async function getInstructores(sedeId) {
+  const { asegurarTiposClaseUsuarios } = require('./estudiantes.Service');
+  await asegurarTiposClaseUsuarios();
+
   // Asegurar que las columnas extendidas existan
   await AppDataSource.query(`
     ALTER TABLE usuarios

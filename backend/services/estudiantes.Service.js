@@ -3,6 +3,56 @@ const { AppDataSource, Usuario, ModuloTeorico, EstudianteModuloProgreso } = requ
 // horas por defecto 
 const HORAS_REQUERIDAS = 40;
 
+async function asegurarTiposClaseUsuarios() {
+  await AppDataSource.query(`
+    ALTER TABLE usuarios
+      ADD COLUMN IF NOT EXISTS tipo_clase varchar(10),
+      ADD COLUMN IF NOT EXISTS especialidad varchar
+  `);
+
+  await AppDataSource.query(`
+    UPDATE usuarios
+    SET tipo_clase = CASE
+      WHEN UPPER(TRIM(tipo_clase)) IN ('A', 'B', 'C') THEN UPPER(TRIM(tipo_clase))
+      WHEN UPPER(COALESCE(tipo_clase, '')) LIKE '%CLASE A%' THEN 'A'
+      WHEN UPPER(COALESCE(tipo_clase, '')) LIKE '%CLASE B%' THEN 'B'
+      WHEN UPPER(COALESCE(tipo_clase, '')) LIKE '%CLASE C%' THEN 'C'
+      WHEN UPPER(COALESCE(especialidad, '')) LIKE '%CLASE A%' THEN 'A'
+      WHEN UPPER(COALESCE(especialidad, '')) LIKE '%CLASE B%' THEN 'B'
+      WHEN UPPER(COALESCE(especialidad, '')) LIKE '%CLASE C%' THEN 'C'
+      ELSE tipo_clase
+    END
+    WHERE rol IN ('estudiante', 'instructor')
+  `);
+
+  await AppDataSource.query(`
+    WITH usuarios_sin_tipo AS (
+      SELECT
+        id,
+        ROW_NUMBER() OVER (PARTITION BY rol ORDER BY id) AS rn
+      FROM usuarios
+      WHERE rol IN ('estudiante', 'instructor')
+        AND (tipo_clase IS NULL OR UPPER(TRIM(tipo_clase)) NOT IN ('A', 'B', 'C'))
+    )
+    UPDATE usuarios u
+    SET tipo_clase = CASE (usuarios_sin_tipo.rn - 1) % 3
+      WHEN 0 THEN 'B'
+      WHEN 1 THEN 'A'
+      ELSE 'C'
+    END
+    FROM usuarios_sin_tipo
+    WHERE u.id = usuarios_sin_tipo.id
+  `);
+
+  await AppDataSource.query(`
+    UPDATE usuarios
+    SET especialidad = 'Clase ' || tipo_clase
+    WHERE rol = 'instructor'
+      AND tipo_clase IN ('A', 'B', 'C')
+      AND (especialidad IS NULL OR especialidad = '' OR especialidad NOT ILIKE 'Clase %')
+  `);
+}
+
 // GET /api/estudiantes/:id - perfil estudiante + horas practicas + modulos
 async function getPerfilEstudiante(estudianteId) {
   try {
@@ -110,6 +160,8 @@ async function getPerfilEstudiante(estudianteId) {
 // GET /api/estudiantes?sedeId=&q=busqueda - buscador global de estudiantes
 async function buscarEstudiantes(sedeId, q) {
   try {
+    await asegurarTiposClaseUsuarios();
+
     let query = AppDataSource.createQueryBuilder()
       .select('u.id', 'id')
       .addSelect('u.nombre', 'nombre')
@@ -510,5 +562,6 @@ module.exports = {
   actualizarEstudiante,
   getModulosTeoricos,
   asignarModuloEstudiante,
-  actualizarProgresoModulo
+  actualizarProgresoModulo,
+  asegurarTiposClaseUsuarios
 };
