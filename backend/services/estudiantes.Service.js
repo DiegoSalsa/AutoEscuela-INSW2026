@@ -2,6 +2,23 @@ const { AppDataSource, Usuario, ModuloTeorico, EstudianteModuloProgreso } = requ
 
 // horas por defecto 
 const HORAS_REQUERIDAS = 40;
+const PATRON_TIPOS_CLASE = ['B', 'B', 'A', 'B', 'C'];
+
+function resolverTipoClase(valor, id) {
+  const normalizado = String(valor || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim();
+
+  if (['A', 'B', 'C'].includes(normalizado)) return normalizado;
+  if (normalizado.includes('CLASE A')) return 'A';
+  if (normalizado.includes('CLASE B')) return 'B';
+  if (normalizado.includes('CLASE C')) return 'C';
+
+  const numero = Math.abs(parseInt(id, 10) || 0);
+  return PATRON_TIPOS_CLASE[numero % PATRON_TIPOS_CLASE.length];
+}
 
 async function asegurarTiposClaseUsuarios() {
   await AppDataSource.query(`
@@ -35,9 +52,11 @@ async function asegurarTiposClaseUsuarios() {
         AND (tipo_clase IS NULL OR UPPER(TRIM(tipo_clase)) NOT IN ('A', 'B', 'C'))
     )
     UPDATE usuarios u
-    SET tipo_clase = CASE (usuarios_sin_tipo.rn - 1) % 3
-      WHEN 0 THEN 'B'
-      WHEN 1 THEN 'A'
+    SET tipo_clase = CASE usuarios_sin_tipo.rn % 5
+      WHEN 1 THEN 'B'
+      WHEN 2 THEN 'B'
+      WHEN 3 THEN 'A'
+      WHEN 4 THEN 'B'
       ELSE 'C'
     END
     FROM usuarios_sin_tipo
@@ -201,7 +220,7 @@ async function buscarEstudiantes(sedeId, q) {
       nombre: row.nombre,
       email: row.email,
       rut: row.rut,
-      tipo_clase: row.tipo_clase,
+      tipo_clase: resolverTipoClase(row.tipo_clase, row.id),
       estado: row.estado,
       sede: {
         id: row.sede_id,

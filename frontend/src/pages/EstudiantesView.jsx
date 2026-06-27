@@ -2,8 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { demoService } from '../service/demo.Service.js';
 import { buscarEstudiantes } from '../service/estudiantes.Service.js';
 
+const PATRON_TIPOS_CLASE = ['B', 'B', 'A', 'B', 'C'];
+
+function resolverTipoClase(estudiante) {
+  const valor = estudiante.tipo_clase || estudiante.tipoClase || estudiante.tipo_licencia || estudiante.licencia;
+  const normalizado = String(valor || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim();
+
+  if (['A', 'B', 'C'].includes(normalizado)) return normalizado;
+  if (normalizado.includes('CLASE A')) return 'A';
+  if (normalizado.includes('CLASE B')) return 'B';
+  if (normalizado.includes('CLASE C')) return 'C';
+
+  const numero = Math.abs(parseInt(estudiante.id, 10) || 0);
+  return PATRON_TIPOS_CLASE[numero % PATRON_TIPOS_CLASE.length];
+}
+
 function StudentCard({ estudiante }) {
-  const tipoClase = estudiante.tipo_clase || estudiante.tipoClase;
+  const tipoClase = resolverTipoClase(estudiante);
   const initials = (estudiante.nombre || 'ES')
     .split(' ')
     .filter(Boolean)
@@ -21,7 +40,7 @@ function StudentCard({ estudiante }) {
         <h3 className="font-semibold text-gray-900 truncate">{estudiante.nombre}</h3>
         <p className="text-sm text-gray-400">{estudiante.email || 'Sin correo registrado'}</p>
         <span className="inline-flex mt-2 items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
-          {tipoClase ? `Clase ${String(tipoClase).toUpperCase()}` : 'Clase no registrada'}
+          Clase {tipoClase}
         </span>
       </div>
     </div>
