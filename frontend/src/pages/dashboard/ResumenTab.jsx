@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { dashboardService, obtenerInventarioFlota } from '../../service/dashboard.Service.js';
+import { dashboardService } from '../../service/dashboard.Service.js';
 import TarjetaVehiculo from '../../components/TarjetaVehiculo.jsx';
 import ModalFinalizarSesion from '../../components/ModalFinalizarSesion';
 import { Users, Car, AlertCircle } from 'lucide-react';
@@ -16,7 +16,7 @@ export default function ResumenTab({ sedeActiva }) {
       setLoading(true);
       const [k, v] = await Promise.all([
         dashboardService.getDashboardKPIs(sedeActiva),
-        obtenerInventarioFlota()
+        dashboardService.getVehiculos(sedeActiva)
       ]);
       
       setKpis(k || { estudiantesActivos: 0, clasesCompletadas: 0, vehiculosDisponibles: '0/0' });
@@ -57,11 +57,7 @@ export default function ResumenTab({ sedeActiva }) {
          };
       });
 
-      const filtrados = sedeActiva === 'all' 
-        ? vehiculosProcesados 
-        : vehiculosProcesados.filter(x => String(x.sede_id) === String(sedeActiva));
-
-      setVehiculos(filtrados);
+      setVehiculos(vehiculosProcesados);
     } catch (error) {
       console.error("Error en Dashboard:", error);
     } finally {

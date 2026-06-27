@@ -50,6 +50,19 @@ function filtrarSede(qb, alias, sedeId) {
   return qb;
 }
 
+async function asegurarColumnasVehiculoDashboard() {
+  await AppDataSource.query(`
+    ALTER TABLE vehiculos
+      ADD COLUMN IF NOT EXISTS kilometraje_actual int DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS km_ultimo_aceite int DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS km_ultimos_frenos int DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS km_proximo_mantenimiento int DEFAULT 10000,
+      ADD COLUMN IF NOT EXISTS fecha_revision_tecnica date DEFAULT NULL,
+      ADD COLUMN IF NOT EXISTS imagen_url varchar(500) DEFAULT NULL,
+      ADD COLUMN IF NOT EXISTS imagen_public_id varchar(255) DEFAULT NULL
+  `);
+}
+
 async function calcularValorActualMeta(meta) {
   const clave = obtenerClaveMetrica(meta.metrica_nombre);
   const sedeId = meta.sede_id || null;
@@ -247,6 +260,8 @@ async function getClasesProximas(sedeId, dias = 7) {
 
 // â”€â”€ NUEVO: Lista individual de vehiculos
 async function getVehiculos(sedeId) {
+  await asegurarColumnasVehiculoDashboard();
+
   const qb = AppDataSource.getRepository('Vehiculo').createQueryBuilder('v')
     .select([
       'v.id AS id', 'v.patente AS patente', 'v.modelo AS modelo',
@@ -254,6 +269,7 @@ async function getVehiculos(sedeId) {
       'v.kilometraje_actual AS kilometraje_actual',
       'v.km_ultimo_aceite AS km_ultimo_aceite',
       'v.km_ultimos_frenos AS km_ultimos_frenos',
+      'v.km_proximo_mantenimiento AS km_proximo_mantenimiento',
       'v.fecha_revision_tecnica AS fecha_revision_tecnica',
       'v.imagen_url AS imagen_url',
       'v.imagen_public_id AS imagen_public_id'

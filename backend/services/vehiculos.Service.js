@@ -2,8 +2,23 @@ const { AppDataSource } = require('../db/data-source');
 const { obtenerAlertasVehiculo } = require('./dashboard.Service');
 const { subirImagenVehiculo, eliminarImagen } = require('./cloudinary.Service');
 
+const asegurarColumnasVehiculo = async () => {
+  await AppDataSource.query(`
+    ALTER TABLE vehiculos
+      ADD COLUMN IF NOT EXISTS kilometraje_actual int DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS km_ultimo_aceite int DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS km_ultimos_frenos int DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS km_proximo_mantenimiento int DEFAULT 10000,
+      ADD COLUMN IF NOT EXISTS fecha_revision_tecnica date DEFAULT NULL,
+      ADD COLUMN IF NOT EXISTS imagen_url varchar(500) DEFAULT NULL,
+      ADD COLUMN IF NOT EXISTS imagen_public_id varchar(255) DEFAULT NULL
+  `);
+};
+
 // Obtiene la flota completa con las alertas preventivas calculadas.
 const getFlotaService = async (sedeId) => {
+  await asegurarColumnasVehiculo();
+
   const qb = AppDataSource.getRepository('Vehiculo').createQueryBuilder('v')
     .select([
       'v.id AS id',
@@ -42,6 +57,8 @@ const updateEstadoService = async (id, estado) => {
 };
 
 const subirImagenService = async (id, file) => {
+  await asegurarColumnasVehiculo();
+
   if (!file) {
     const error = new Error('Debes adjuntar una imagen');
     error.status = 400;

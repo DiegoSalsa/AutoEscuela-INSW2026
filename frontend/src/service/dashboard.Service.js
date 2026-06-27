@@ -231,8 +231,8 @@ export const dashboardService = {
 
 export const obtenerInventarioFlota = async (sedeId = null) => {
     try {
-        const parametroSede = sedeId ? `?sedeId=${sedeId}` : '';
-        const respuesta = await fetch(`/api/dashboard/vehiculos${parametroSede}`);
+        const sp = buildSedeParam(sedeId);
+        const respuesta = await fetch(`${API_BASE}/vehiculos${sp ? '?' + sp : ''}`);
         if (!respuesta.ok) throw new Error('Error al conectar con el servidor');
         return await respuesta.json();
     } catch (error) {
