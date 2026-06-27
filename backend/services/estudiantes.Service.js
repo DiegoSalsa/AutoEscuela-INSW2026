@@ -65,6 +65,7 @@ async function getPerfilEstudiante(estudianteId) {
       email: estudiante.email,
       telefono: estudiante.telefono,
       rut: estudiante.rut,
+      tipo_clase: estudiante.tipo_clase,
       estado: estudiante.estado,
       created_at: estudiante.created_at,
       sede: {
@@ -114,6 +115,7 @@ async function buscarEstudiantes(sedeId, q) {
       .addSelect('u.nombre', 'nombre')
       .addSelect('u.email', 'email')
       .addSelect('u.rut', 'rut')
+      .addSelect('u.tipo_clase', 'tipo_clase')
       .addSelect('u.sede_id', 'sede_id')
       .addSelect('u.estado', 'estado')
       .addSelect('s.nombre', 'sede_nombre')
@@ -147,6 +149,7 @@ async function buscarEstudiantes(sedeId, q) {
       nombre: row.nombre,
       email: row.email,
       rut: row.rut,
+      tipo_clase: row.tipo_clase,
       estado: row.estado,
       sede: {
         id: row.sede_id,
@@ -163,7 +166,7 @@ async function buscarEstudiantes(sedeId, q) {
 
 // POST /api/estudiantes - crear nuevo estudiante
 async function crearEstudiante(estudianteData) {
-  const { nombre, email, telefono, rut, sedeId } = estudianteData;
+  const { nombre, email, telefono, rut, sedeId, tipoClase } = estudianteData;
   const usuarioRepository = AppDataSource.getRepository('Usuario');
   const sedeRepository = AppDataSource.getRepository('Sede');
 
@@ -208,6 +211,7 @@ async function crearEstudiante(estudianteData) {
       telefono,
       rut,
       sede_id: sedeId,
+      tipo_clase: tipoClase || estudianteData.tipo_clase || null,
       rol: 'estudiante',
       estado: 'activo',
     });
@@ -220,6 +224,7 @@ async function crearEstudiante(estudianteData) {
       email: resultado.email,
       telefono: resultado.telefono,
       rut: resultado.rut,
+      tipo_clase: resultado.tipo_clase,
       estado: resultado.estado,
       sede_id: resultado.sede_id,
       created_at: resultado.created_at,
@@ -297,7 +302,7 @@ async function getTimelineEstudiante(estudianteId) {
 }
 
 async function actualizarEstudiante(estudianteId, datosActualizar) {
-  const { nombre, email, telefono } = datosActualizar;
+  const { nombre, email, telefono, tipoClase } = datosActualizar;
   const usuarioRepository = AppDataSource.getRepository('Usuario');
 
   try {
@@ -329,6 +334,7 @@ async function actualizarEstudiante(estudianteId, datosActualizar) {
     // actualizar campos
     if (nombre) estudiante.nombre = nombre;
     if (telefono) estudiante.telefono = telefono;
+    if (tipoClase) estudiante.tipo_clase = tipoClase;
 
     const resultado = await usuarioRepository.save(estudiante);
 
@@ -339,6 +345,7 @@ async function actualizarEstudiante(estudianteId, datosActualizar) {
       telefono: resultado.telefono,
       rut: resultado.rut,
       estado: resultado.estado,
+      tipo_clase: resultado.tipo_clase,
       updated_at: resultado.updated_at,
       mensaje: 'Estudiante actualizado exitosamente',
     };

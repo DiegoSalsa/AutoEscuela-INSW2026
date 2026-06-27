@@ -20,12 +20,13 @@ const validarSedeId = (req, res, next) => {
 
 // middleware que valida el body para crear estudiante
 const validarCrearEstudiante = (req, res, next) => {
-  const { nombre, email, telefono, rut, sedeId } = req.body;
+  const { nombre, email, telefono, rut, sedeId, tipoClase, tipo_clase } = req.body;
+  const clase = tipoClase || tipo_clase;
 
   // validar campos obligatorios
-  if (!nombre || !email || !rut || !sedeId) {
+  if (!nombre || !email || !rut || !sedeId || !clase) {
     return res.status(400).json({
-      error: 'Los campos nombre, email, rut y sedeId son obligatorios'
+      error: 'Los campos nombre, email, rut, sedeId y tipoClase son obligatorios'
     });
   }
 
@@ -67,10 +68,18 @@ const validarCrearEstudiante = (req, res, next) => {
     });
   }
 
+  const tipoNormalizado = String(clase).trim().toUpperCase();
+  if (!['A', 'B', 'C'].includes(tipoNormalizado)) {
+    return res.status(400).json({
+      error: 'El tipo de clase debe ser A, B o C'
+    });
+  }
+
   req.body.email = email.toLowerCase().trim();
   req.body.rut = rut.toUpperCase().trim();
   req.body.nombre = nombre.trim();
   req.body.sedeId = parsedSedeId;
+  req.body.tipoClase = tipoNormalizado;
 
   next();
 };
@@ -109,12 +118,13 @@ const validarModuloId = (req, res, next) => {
 
 // middleware que valida actualización de estudiante
 const validarActualizarEstudiante = (req, res, next) => {
-  const { nombre, email, telefono } = req.body;
+  const { nombre, email, telefono, tipoClase, tipo_clase } = req.body;
+  const clase = tipoClase || tipo_clase;
 
   // al menos uno debe venir
-  if (!nombre && !email && !telefono) {
+  if (!nombre && !email && !telefono && !clase) {
     return res.status(400).json({
-      error: 'Debes proporcionar al menos un campo para actualizar (nombre, email o telefono)'
+      error: 'Debes proporcionar al menos un campo para actualizar (nombre, email, telefono o tipoClase)'
     });
   }
 
@@ -141,6 +151,16 @@ const validarActualizarEstudiante = (req, res, next) => {
     return res.status(400).json({
       error: 'El teléfono debe ser texto'
     });
+  }
+
+  if (clase) {
+    const tipoNormalizado = String(clase).trim().toUpperCase();
+    if (!['A', 'B', 'C'].includes(tipoNormalizado)) {
+      return res.status(400).json({
+        error: 'El tipo de clase debe ser A, B o C'
+      });
+    }
+    req.body.tipoClase = tipoNormalizado;
   }
 
   if (nombre) req.body.nombre = nombre.trim();

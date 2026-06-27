@@ -5,6 +5,9 @@ import DashboardView from './DashboardView';
 import MetasView from './MetasView';
 import ReservasView from './ReservasView';
 import Proximamente from '../components/Proximamente';
+import EstudiantesView from './EstudiantesView';
+import InstructoresView from './InstructoresView';
+import FlotaView from './FlotaView';
 
 export default function MainLayout({ user, onLogout }) {
   // Si es estudiante, solo tiene acceso a agenda
@@ -28,9 +31,11 @@ export default function MainLayout({ user, onLogout }) {
       case 'agenda':
         return <ReservasView user={user} />;
       case 'estudiantes':
-        return <Proximamente modulo="estudiantes" />;
+        return <EstudiantesView sedeActiva={sedeActiva} />;
+      case 'instructores':
+        return <InstructoresView sedeActiva={sedeActiva} />;
       case 'flota':
-        return <Proximamente modulo="flota" />;
+        return <FlotaView sedeActiva={sedeActiva} />;
       default:
         return <Proximamente />;
     }

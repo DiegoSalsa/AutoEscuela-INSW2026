@@ -9,6 +9,8 @@ const apiRoutes = require('./routes/index.Routes');
 const { initSocket } = require('./services/socket');
 const { initMailer } = require('./services/notificaciones.Service');
 const { iniciarScheduler } = require('./jobs/scheduler');
+const vehiculosController = require('./controllers/vehiculos.Controller');
+const { uploadImagen } = require('./middleware/upload.middleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +24,24 @@ initSocket(server);
 // Middlewares
 app.use(cors());
 app.use(express.json());
+
+app.post('/api/dashboard/vehiculos/:id/imagen', (req, res, next) => {
+  uploadImagen.single('imagen')(req, res, (error) => {
+    if (error) {
+      return res.status(400).json({ error: error.message || 'No se pudo procesar la imagen' });
+    }
+    next();
+  });
+}, vehiculosController.uploadImagenVehiculo);
+
+app.post('/api/vehiculos/:id/imagen', (req, res, next) => {
+  uploadImagen.single('imagen')(req, res, (error) => {
+    if (error) {
+      return res.status(400).json({ error: error.message || 'No se pudo procesar la imagen' });
+    }
+    next();
+  });
+}, vehiculosController.uploadImagenVehiculo);
 
 app.use('/api', apiRoutes);
 

@@ -1,4 +1,5 @@
 const dashboardService = require('../services/dashboard.Service');
+const vehiculoService = require('../services/vehiculos.Service');
 
 // GET /api/dashboard/kpis?sedeId=
 const getKPIs = async (req, res) => {
@@ -50,6 +51,18 @@ const getVehiculos = async (req, res) => {
   } catch (error) {
     console.error('Error en getVehiculos:', error.message);
     res.status(500).json({ error: 'Error al obtener los vehículos' });
+  }
+};
+
+// POST /api/dashboard/vehiculos/:id/imagen
+const uploadImagenVehiculo = async (req, res) => {
+  try {
+    const vehiculo = await vehiculoService.subirImagenService(req.params.id, req.file);
+    if (!vehiculo) return res.status(404).json({ error: 'Vehiculo no encontrado' });
+    res.json({ mensaje: 'Imagen actualizada', vehiculo });
+  } catch (error) {
+    const status = error.status || 500;
+    res.status(status).json({ error: error.message || 'Error al subir la imagen' });
   }
 };
 
@@ -122,7 +135,7 @@ const crearMeta = async (req, res) => {
     res.status(201).json({ message: 'Meta creada exitosamente', data: meta });
   } catch (error) {
     console.error('Error en crearMeta:', error.message);
-    res.status(500).json({ error: 'Error al crear la meta' });
+    res.status(error.status || 500).json({ error: error.message || 'Error al crear la meta' });
   }
 };
 
@@ -152,7 +165,7 @@ const actualizarMeta = async (req, res) => {
     res.json({ message: 'Meta actualizada exitosamente', data: meta });
   } catch (error) {
     console.error('Error en actualizarMeta:', error.message);
-    res.status(500).json({ error: 'Error al actualizar la meta' });
+    res.status(error.status || 500).json({ error: error.message || 'Error al actualizar la meta' });
   }
 };
 
@@ -196,19 +209,6 @@ const getOcupacionSede = async (req, res) => {
   }
 };
 
-// GET /api/dashboard/ingresos?sedeId=&mes_anio=2026-05
-const getIngresos = async (req, res) => {
-  try {
-    const sedeId = req.query.sedeId || null;
-    const mesAnio = req.query.mes_anio || null;
-    const data = await dashboardService.getIngresos(sedeId, mesAnio);
-    res.json(data);
-  } catch (error) {
-    console.error('Error en getIngresos:', error.message);
-    res.status(500).json({ error: 'Error al obtener ingresos' });
-  }
-};
-
 // GET /api/dashboard/rendimiento-mes?sedeId=
 const getRendimientoMes = async (req, res) => {
   try {
@@ -223,8 +223,9 @@ const getRendimientoMes = async (req, res) => {
 
 module.exports = {
   getKPIs, getClasesHoy, getClasesProximas, getVehiculos,
+  uploadImagenVehiculo,
   getGraficoSemana, getUsoFlota, generarReporte,
-  getAprobadosReprobados, getOcupacionSede, getIngresos, getRendimientoMes,
+  getAprobadosReprobados, getOcupacionSede, getRendimientoMes,
   crearMeta, obtenerMetas, actualizarMeta, eliminarMeta,
 };
 

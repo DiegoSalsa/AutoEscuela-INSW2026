@@ -1,10 +1,9 @@
-const { AppDataSource } = require('../db/data-source');
+﻿const { AppDataSource } = require('../db/data-source');
 
 const HOY_SQL = `(CURRENT_TIMESTAMP AT TIME ZONE 'America/Santiago')::date`;
 
 const METRICAS_META = {
   clases_completadas: ['clases completadas', 'clases_completadas', 'clases'],
-  ingresos: ['ingresos', 'ingresos del mes', 'ventas'],
   estudiantes_activos: ['estudiantes activos', 'estudiantes_activos', 'alumnos activos'],
   nuevos_estudiantes: ['nuevos estudiantes', 'nuevos_estudiantes', 'nuevos alumnos', 'matriculas'],
   aprobados: ['aprobados', 'examenes aprobados'],
@@ -24,6 +23,16 @@ function normalizarTexto(valor = '') {
 function obtenerClaveMetrica(nombre) {
   const normalizado = normalizarTexto(nombre);
   return Object.entries(METRICAS_META).find(([, alias]) => alias.includes(normalizado))?.[0] || null;
+}
+
+function validarMetricaMeta(nombre) {
+  const clave = obtenerClaveMetrica(nombre);
+  if (!clave) {
+    const error = new Error('Metrica no soportada para metas operativas');
+    error.status = 400;
+    throw error;
+  }
+  return clave;
 }
 
 function obtenerRangoMes(mesAnio) {
@@ -57,16 +66,6 @@ async function calcularValorActualMeta(meta) {
     filtrarSede(qb, 'r', sedeId);
     const row = await qb.getRawOne();
     return { clave, valorActual: parseInt(row.total, 10) || 0 };
-  }
-
-  if (clave === 'ingresos') {
-    const qb = AppDataSource.getRepository('Pago').createQueryBuilder('p')
-      .select('COALESCE(SUM(p.monto), 0)', 'total')
-      .where('p.fecha >= :inicio', { inicio: rango.inicio })
-      .andWhere('p.fecha < :finExclusivo', { finExclusivo: rango.finExclusivo });
-    filtrarSede(qb, 'p', sedeId);
-    const row = await qb.getRawOne();
-    return { clave, valorActual: parseFloat(row.total) || 0 };
   }
 
   if (clave === 'estudiantes_activos') {
@@ -158,16 +157,16 @@ async function enriquecerMetaConProgreso(meta) {
 }
 
 const SEMANA_COMPLETA = [
-  { dia: 'Lunes',     diaNum: 1 },
-  { dia: 'Martes',    diaNum: 2 },
-  { dia: 'Miércoles', diaNum: 3 },
-  { dia: 'Jueves',    diaNum: 4 },
-  { dia: 'Viernes',   diaNum: 5 },
-  { dia: 'Sábado',    diaNum: 6 },
-  { dia: 'Domingo',   diaNum: 7 },
+  { dia: 'Lunes', diaNum: 1 },
+  { dia: 'Martes', diaNum: 2 },
+  { dia: 'MiÃ©rcoles', diaNum: 3 },
+  { dia: 'Jueves', diaNum: 4 },
+  { dia: 'Viernes', diaNum: 5 },
+  { dia: 'SÃ¡bado', diaNum: 6 },
+  { dia: 'Domingo', diaNum: 7 },
 ];
 
-// KPIs — 4 queries en paralelo con Promise.all
+// KPIs â€” 4 queries en paralelo con Promise.all
 async function getKPIs(sedeId) {
   const rU = AppDataSource.getRepository('Usuario');
   const rR = AppDataSource.getRepository('Reserva');
@@ -224,7 +223,7 @@ async function getClasesHoy(sedeId, fecha) {
   return qb.getRawMany();
 }
 
-// ── NUEVO: Clases próximas (hoy + N días)
+// â”€â”€ NUEVO: Clases prÃ³ximas (hoy + N dÃ­as)
 async function getClasesProximas(sedeId, dias = 7) {
   const qb = AppDataSource.getRepository('Reserva').createQueryBuilder('r')
     .select([
@@ -246,22 +245,24 @@ async function getClasesProximas(sedeId, dias = 7) {
   return qb.getRawMany();
 }
 
-// ── NUEVO: Lista individual de vehiculos
+// â”€â”€ NUEVO: Lista individual de vehiculos
 async function getVehiculos(sedeId) {
   const qb = AppDataSource.getRepository('Vehiculo').createQueryBuilder('v')
     .select([
       'v.id AS id', 'v.patente AS patente', 'v.modelo AS modelo',
       'v.estado AS estado', 'v.sede_id AS sede_id', 's.nombre AS sede_nombre',
-      'v.kilometraje_actual AS kilometraje_actual', 
+      'v.kilometraje_actual AS kilometraje_actual',
       'v.km_ultimo_aceite AS km_ultimo_aceite',
       'v.km_ultimos_frenos AS km_ultimos_frenos',
-      'v.fecha_revision_tecnica AS fecha_revision_tecnica'
+      'v.fecha_revision_tecnica AS fecha_revision_tecnica',
+      'v.imagen_url AS imagen_url',
+      'v.imagen_public_id AS imagen_public_id'
     ])
     .innerJoin('sedes', 's', 'v.sede_id = s.id');
 
   if (sedeId) qb.where('v.sede_id = :sedeId', { sedeId });
   qb.orderBy('s.nombre', 'ASC').addOrderBy('v.patente', 'ASC');
-  
+
   const rows = await qb.getRawMany();
   //Mapeamos los resultados para inyectar las alertas 
   return rows.map(auto => ({
@@ -270,7 +271,7 @@ async function getVehiculos(sedeId) {
   }));
 }
 
-// Grafico semanal — con dias fantasma
+// Grafico semanal â€” con dias fantasma
 async function getGraficoSemana(sedeId) {
   const qS = AppDataSource.getRepository('Sede').createQueryBuilder('s')
     .select(['s.id', 's.nombre']).orderBy('s.nombre', 'ASC');
@@ -343,8 +344,10 @@ async function getUsoFlota(sedeId) {
 
 // Reporte avanzado (expandido con nuevas metricas)
 async function generarReporteAvanzado(fi, ff, sedeId, metricas) {
-  const rep = { periodo: { fechaInicio: fi, fechaFin: ff }, sedeId: sedeId || 'todas',
-    generadoEn: new Date().toISOString(), metricas: {} };
+  const rep = {
+    periodo: { fechaInicio: fi, fechaFin: ff }, sedeId: sedeId || 'todas',
+    generadoEn: new Date().toISOString(), metricas: {}
+  };
   const proms = []; const keys = [];
 
   if (metricas.includes('clases_completadas')) {
@@ -377,18 +380,6 @@ async function generarReporteAvanzado(fi, ff, sedeId, metricas) {
     if (sedeId) q.andWhere('re.sede_id = :sedeId', { sedeId });
     proms.push(q.getRawOne()); keys.push('aprobados_reprobados');
   }
-  if (metricas.includes('ingresos')) {
-    const q = AppDataSource.getRepository('Pago').createQueryBuilder('p')
-      .select([
-        "COALESCE(SUM(p.monto), 0) AS total_ingresos",
-        "COUNT(*) AS total_pagos",
-      ])
-      .where('p.fecha >= :fi::date', { fi })
-      .andWhere('p.fecha <= :ff::date', { ff });
-    if (sedeId) q.andWhere('p.sede_id = :sedeId', { sedeId });
-    proms.push(q.getRawOne()); keys.push('ingresos');
-  }
-
   const res = await Promise.all(proms);
   res.forEach((r, i) => {
     if (keys[i] === 'clases_completadas') {
@@ -417,18 +408,11 @@ async function generarReporteAvanzado(fi, ff, sedeId, metricas) {
         descripcion: `Resultados de examenes entre ${fi} y ${ff}`,
       };
     }
-    if (keys[i] === 'ingresos') {
-      rep.metricas.ingresos = {
-        totalIngresos: parseFloat(r.total_ingresos) || 0,
-        totalPagos: parseInt(r.total_pagos, 10),
-        descripcion: `Ingresos por matriculas y planes entre ${fi} y ${ff}`,
-      };
-    }
   });
   return rep;
 }
 
-// ── Aprobados vs Reprobados ──
+// â”€â”€ Aprobados vs Reprobados â”€â”€
 async function getAprobadosReprobados(sedeId, mesAnio) {
   const qb = AppDataSource.getRepository('ResultadoExamen').createQueryBuilder('re')
     .select([
@@ -467,7 +451,7 @@ async function getAprobadosReprobados(sedeId, mesAnio) {
   return resumen;
 }
 
-// ── Ocupacion de vehiculos por sede ──
+// â”€â”€ Ocupacion de vehiculos por sede â”€â”€
 async function getOcupacionSede(sedeId) {
   const qb = AppDataSource.getRepository('Sede').createQueryBuilder('s')
     .select([
@@ -498,57 +482,14 @@ async function getOcupacionSede(sedeId) {
   });
 }
 
-// ── Ingresos por matriculas y planes ──
-async function getIngresos(sedeId, mesAnio) {
-  const qb = AppDataSource.getRepository('Pago').createQueryBuilder('p')
-    .select([
-      'p.concepto AS concepto',
-      'COALESCE(SUM(p.monto), 0) AS total',
-      'COUNT(*) AS cantidad',
-    ])
-    .groupBy('p.concepto').orderBy('total', 'DESC');
-
-  if (mesAnio) qb.where("TO_CHAR(p.fecha, 'YYYY-MM') = :mesAnio", { mesAnio });
-  if (sedeId) qb.andWhere('p.sede_id = :sedeId', { sedeId });
-
-  const rows = await qb.getRawMany();
-
-  const qbSede = AppDataSource.getRepository('Pago').createQueryBuilder('p')
-    .select([
-      's.nombre AS sede',
-      'COALESCE(SUM(p.monto), 0) AS total',
-      'COUNT(*) AS cantidad',
-    ])
-    .innerJoin('sedes', 's', 'p.sede_id = s.id')
-    .groupBy('s.nombre').orderBy('total', 'DESC');
-
-  if (mesAnio) qbSede.where("TO_CHAR(p.fecha, 'YYYY-MM') = :mesAnio", { mesAnio });
-  if (sedeId) qbSede.andWhere('p.sede_id = :sedeId', { sedeId });
-
-  const sedeRows = await qbSede.getRawMany();
-  const totalGeneral = rows.reduce((a, r) => a + parseFloat(r.total), 0);
-
-  return {
-    totalIngresos: totalGeneral,
-    totalPagos: rows.reduce((a, r) => a + parseInt(r.cantidad, 10), 0),
-    porConcepto: rows.map((r) => ({
-      concepto: r.concepto, total: parseFloat(r.total), cantidad: parseInt(r.cantidad, 10),
-    })),
-    porSede: sedeRows.map((r) => ({
-      sede: r.sede, total: parseFloat(r.total), cantidad: parseInt(r.cantidad, 10),
-    })),
-  };
-}
-
-// ── Rendimiento del mes en curso ──
+// â”€â”€ Rendimiento del mes en curso â”€â”€
 async function getRendimientoMes(sedeId) {
   const ahora = new Date();
   const mesAnio = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}`;
   const mesLabel = ahora.toLocaleString('es-CL', { month: 'long', year: 'numeric' });
 
-  const [aprobados, ingresos, kpis] = await Promise.all([
+  const [aprobados, kpis] = await Promise.all([
     getAprobadosReprobados(sedeId, mesAnio),
-    getIngresos(sedeId, mesAnio),
     getKPIs(sedeId),
   ]);
 
@@ -566,8 +507,6 @@ async function getRendimientoMes(sedeId) {
     aprobados: aprobados.aprobados,
     reprobados: aprobados.reprobados,
     tasaAprobacion: aprobados.tasaAprobacion,
-    ingresosMes: ingresos.totalIngresos,
-    totalPagos: ingresos.totalPagos,
   };
 }
 
@@ -576,7 +515,7 @@ async function getRendimientoMes(sedeId) {
 async function crearMeta(datos) {
   const repo = AppDataSource.getRepository('MetaKPI');
   const meta = repo.create({
-    metrica_nombre: datos.metrica_nombre,
+    metrica_nombre: validarMetricaMeta(datos.metrica_nombre),
     valor_esperado: datos.valor_esperado,
     mes_anio: datos.mes_anio,
     sede_id: datos.sede_id || null,
@@ -593,7 +532,8 @@ async function obtenerMetas(filtros = {}) {
       'm.sede_id AS sede_id', 's.nombre AS sede_nombre',
       'm.creado_en AS creado_en', 'm.actualizado_en AS actualizado_en',
     ]);
-  if (filtros.mes_anio) qb.where('m.mes_anio = :ma', { ma: filtros.mes_anio });
+  qb.where('m.metrica_nombre IN (:...metricas)', { metricas: Object.keys(METRICAS_META) });
+  if (filtros.mes_anio) qb.andWhere('m.mes_anio = :ma', { ma: filtros.mes_anio });
   if (filtros.sede_id) qb.andWhere('m.sede_id = :si', { si: filtros.sede_id });
   qb.orderBy('m.creado_en', 'DESC');
   const metas = await qb.getRawMany();
@@ -604,7 +544,7 @@ async function actualizarMeta(id, datos) {
   const repo = AppDataSource.getRepository('MetaKPI');
   const meta = await repo.findOneBy({ id: parseInt(id, 10) });
   if (!meta) return null;
-  if (datos.metrica_nombre !== undefined) meta.metrica_nombre = datos.metrica_nombre;
+  if (datos.metrica_nombre !== undefined) meta.metrica_nombre = validarMetricaMeta(datos.metrica_nombre);
   if (datos.valor_esperado !== undefined) meta.valor_esperado = datos.valor_esperado;
   if (datos.mes_anio !== undefined) meta.mes_anio = datos.mes_anio;
   if (datos.sede_id !== undefined) meta.sede_id = datos.sede_id;
@@ -620,65 +560,95 @@ async function eliminarMeta(id) {
 }
 
 //motor de reglas para alertas
- const obtenerAlertasVehiculo = (vehiculo) => {
-    const UMBRAL_ACEITE = 10000; 
-    const UMBRAL_FRENOS = 20000; 
-    const alertas = [];
+const obtenerAlertasVehiculo = (vehiculo) => {
+  const UMBRAL_ACEITE = 10000;
+  const UMBRAL_FRENOS = 20000;
+  const alertas = [];
 
-    //alerta de aceite
-    if (vehiculo.kilometraje_actual - vehiculo.km_ultimo_aceite >= UMBRAL_ACEITE) {
-        alertas.push({ item: "Aceite", nivel: "Critico", mensaje: "Requiere cambio inmediato" });
+  //alerta de aceite
+  if (vehiculo.kilometraje_actual - vehiculo.km_ultimo_aceite >= UMBRAL_ACEITE) {
+    alertas.push({ item: "Aceite", nivel: "Critico", mensaje: "Requiere cambio inmediato" });
+  }
+
+  //alerta de frenos
+  if (vehiculo.kilometraje_actual - vehiculo.km_ultimos_frenos >= UMBRAL_FRENOS) {
+    alertas.push({ item: "Frenos", nivel: "Advertencia", mensaje: "Revision preventiva necesaria" });
+  }
+
+  //alerta Revision tecnica
+  if (vehiculo.fecha_revision_tecnica) {
+    const fechaActual = new Date();
+    const fechaRevision = new Date(vehiculo.fecha_revision_tecnica);
+    const diferenciaDias = (fechaRevision - fechaActual) / (1000 * 60 * 60 * 24);
+
+    if (diferenciaDias <= 30) {
+      alertas.push({
+        item: "Revision Tecnica",
+        nivel: "Urgente",
+        mensaje: `Vence en ${Math.round(diferenciaDias)} dias`
+      });
     }
+  }
 
-    //alerta de frenos
-    if (vehiculo.kilometraje_actual - vehiculo.km_ultimos_frenos >= UMBRAL_FRENOS) {
-        alertas.push({ item: "Frenos", nivel: "Advertencia", mensaje: "Revision preventiva necesaria" });
-    }
-
-    //alerta Revision tecnica
-    if (vehiculo.fecha_revision_tecnica) {
-        const fechaActual = new Date();
-        const fechaRevision = new Date(vehiculo.fecha_revision_tecnica);
-        const diferenciaDias = (fechaRevision - fechaActual) / (1000 * 60 * 60 * 24);
-
-        if (diferenciaDias <= 30) {
-            alertas.push({ 
-                item: "Revision Tecnica", 
-                nivel: "Urgente", 
-                mensaje: `Vence en ${Math.round(diferenciaDias)} dias` 
-            });
-        }
-    }
-
-    return alertas;
+  return alertas;
 };
 
-const finalizarSesionVehiculo = async (id, kmRecorridos) => { 
-    const repo = AppDataSource.getRepository('Vehiculo');
-    // Lógica para actualizar los kilómetros y liberar el vehículo
+const finalizarSesionVehiculo = async (id, kmRecorridos) => {
+  const repo = AppDataSource.getRepository('Vehiculo');
+  // LÃ³gica para actualizar los kilÃ³metros y liberar el vehÃ­culo
   try {
     const vehiculoRepository = AppDataSource.getRepository("Vehiculo");
     const vehiculo = await vehiculoRepository.findOneBy({ id: parseInt(id) });
-    
+
     if (vehiculo) {
-      // Sumamos los kilómetros recorridos al total actual
+      // Sumamos los kilÃ³metros recorridos al total actual
       vehiculo.kilometraje_actual += parseInt(kmRecorridos);
       // Cambiamos el estado para que otros puedan usarlo
       vehiculo.estado = 'disponible';
-      
+
       return await vehiculoRepository.save(vehiculo);
     }
-    throw new Error("Vehículo no encontrado");
+    throw new Error("VehÃ­culo no encontrado");
   } catch (error) {
     console.error("Error en finalizarSesionVehiculo:", error);
     throw error;
   }
-    
+
 };
+
+// â”€â”€ Instructores con metricas â”€â”€
+async function getInstructores(sedeId) {
+  // Asegurar que las columnas extendidas existan
+  await AppDataSource.query(`
+    ALTER TABLE usuarios
+      ADD COLUMN IF NOT EXISTS especialidad varchar DEFAULT NULL,
+      ADD COLUMN IF NOT EXISTS anios_experiencia int DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS calificacion_promedio numeric(2,1) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS total_clases_completadas int DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS turno varchar DEFAULT NULL,
+      ADD COLUMN IF NOT EXISTS tipo_clase varchar(10) DEFAULT NULL
+  `);
+
+  const rows = await AppDataSource.query(`
+    SELECT
+      u.id, u.nombre, u.email, u.telefono, u.rut, u.estado, u.sede_id,
+      s.nombre AS sede_nombre,
+      u.tipo_clase, u.especialidad, u.anios_experiencia,
+      u.calificacion_promedio, u.total_clases_completadas, u.turno
+    FROM usuarios u
+    INNER JOIN sedes s ON u.sede_id = s.id
+    WHERE u.rol = 'instructor'
+    ${sedeId ? 'AND u.sede_id = $1' : ''}
+    ORDER BY u.nombre ASC
+  `, sedeId ? [sedeId] : []);
+
+  return rows;
+}
 
 module.exports = {
   getKPIs, getClasesHoy, getClasesProximas, getVehiculos,
   getGraficoSemana, getUsoFlota, generarReporteAvanzado,
-  getAprobadosReprobados, getOcupacionSede, getIngresos, getRendimientoMes,
-  crearMeta, obtenerMetas, actualizarMeta, eliminarMeta,obtenerAlertasVehiculo, finalizarSesionVehiculo,
+  getAprobadosReprobados, getOcupacionSede, getRendimientoMes,
+  crearMeta, obtenerMetas, actualizarMeta, eliminarMeta, obtenerAlertasVehiculo, finalizarSesionVehiculo,
+  getInstructores,
 };

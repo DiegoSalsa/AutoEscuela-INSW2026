@@ -8,7 +8,6 @@ const MetaKPI = require('./MetaKPI.entity');
 const ModuloTeorico = require('./ModuloTeorico.entity');
 const EstudianteModuloProgreso = require('./EstudianteModuloProgreso.entity');
 const ResultadoExamen = require('./ResultadoExamen.entity');
-const Pago = require('./Pago.entity');
 
 module.exports = {
   Sede,
@@ -20,5 +19,4 @@ module.exports = {
   ModuloTeorico,
   EstudianteModuloProgreso,
   ResultadoExamen,
-  Pago,
 };

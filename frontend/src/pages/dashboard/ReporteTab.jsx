@@ -9,73 +9,93 @@ function sedeLabel(s) {
 
 const METRICAS_DISPONIBLES = [
   { id: 'clases_completadas', label: 'Clases Completadas', icon: (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
   )},
   { id: 'uso_flota', label: 'Uso de Flota', icon: (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
   )},
   { id: 'aprobados_reprobados', label: 'Aprobados vs Reprobados', icon: (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-  )},
-  { id: 'ingresos', label: 'Ingresos', icon: (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
   )},
 ];
 
-function formatCLP(n) {
-  return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
+function agregarFilaDetalle(filas, categoria, indicador, valor, unidad = '') {
+  filas.push({ Categoria: categoria, Indicador: indicador, Valor: valor, Unidad: unidad });
 }
 
 function exportarExcel(reporte) {
   if (!reporte) return;
-  const wb = XLSX.utils.book_new();
 
-  // Hoja 1: Resumen
-  const resumenData = [
+  const periodo = `${reporte.periodo?.fechaInicio || ''} a ${reporte.periodo?.fechaFin || ''}`;
+  const sede = reporte.sedeId === 'todas' ? 'Todas las sedes' : `Sede ${reporte.sedeId}`;
+  const generado = new Date(reporte.generadoEn).toLocaleString('es-CL');
+
+  const resumen = [
     ['Reporte Avanzado - AutoDrive Academy'],
-    [''],
-    ['Periodo', `${reporte.periodo?.fechaInicio} a ${reporte.periodo?.fechaFin}`],
-    ['Sede', reporte.sedeId === 'todas' ? 'Todas' : `Sede ${reporte.sedeId}`],
-    ['Generado', new Date(reporte.generadoEn).toLocaleString('es-CL')],
-    [''],
+    ['Periodo', periodo],
+    ['Sede', sede],
+    ['Generado', generado],
+    [],
+    ['Categoria', 'Indicador', 'Valor', 'Unidad'],
   ];
 
+  const detalles = [];
+
   if (reporte.metricas?.clases_completadas) {
-    resumenData.push(['Clases Completadas']);
-    resumenData.push(['Total', reporte.metricas.clases_completadas.total]);
-    resumenData.push(['']);
+    const total = reporte.metricas.clases_completadas.total;
+    resumen.push(['Clases Completadas', 'Total', total, 'clases']);
+    agregarFilaDetalle(detalles, 'Clases Completadas', 'Total', total, 'clases');
   }
+
   if (reporte.metricas?.uso_flota) {
     const uf = reporte.metricas.uso_flota;
-    resumenData.push(['Uso de Flota']);
-    resumenData.push(['Vehiculos Ocupados', uf.vehiculosOcupados]);
-    resumenData.push(['Vehiculos Disponibles', uf.vehiculosDisponibles]);
-    resumenData.push(['Total Flota', uf.totalFlota]);
-    resumenData.push(['% Ocupacion', `${uf.porcentajeOcupacion}%`]);
-    resumenData.push(['']);
+    const filas = [
+      ['Vehiculos ocupados', uf.vehiculosOcupados, 'vehiculos'],
+      ['Vehiculos disponibles', uf.vehiculosDisponibles, 'vehiculos'],
+      ['Total flota', uf.totalFlota, 'vehiculos'],
+      ['Ocupacion', uf.porcentajeOcupacion, '%'],
+    ];
+    filas.forEach(([indicador, valor, unidad]) => {
+      resumen.push(['Uso de Flota', indicador, valor, unidad]);
+      agregarFilaDetalle(detalles, 'Uso de Flota', indicador, valor, unidad);
+    });
   }
+
   if (reporte.metricas?.aprobados_reprobados) {
     const ar = reporte.metricas.aprobados_reprobados;
-    resumenData.push(['Aprobados vs Reprobados']);
-    resumenData.push(['Aprobados', ar.aprobados]);
-    resumenData.push(['Reprobados', ar.reprobados]);
-    resumenData.push(['Total Examenes', ar.total]);
-    resumenData.push(['Tasa Aprobacion', `${ar.tasaAprobacion}%`]);
-    resumenData.push(['']);
-  }
-  if (reporte.metricas?.ingresos) {
-    const ig = reporte.metricas.ingresos;
-    resumenData.push(['Ingresos']);
-    resumenData.push(['Total Ingresos', ig.totalIngresos]);
-    resumenData.push(['Total Pagos', ig.totalPagos]);
-    resumenData.push(['']);
+    const filas = [
+      ['Aprobados', ar.aprobados, 'examenes'],
+      ['Reprobados', ar.reprobados, 'examenes'],
+      ['Total examenes', ar.total, 'examenes'],
+      ['Tasa aprobacion', ar.tasaAprobacion, '%'],
+    ];
+    filas.forEach(([indicador, valor, unidad]) => {
+      resumen.push(['Aprobados vs Reprobados', indicador, valor, unidad]);
+      agregarFilaDetalle(detalles, 'Aprobados vs Reprobados', indicador, valor, unidad);
+    });
   }
 
-  const ws = XLSX.utils.aoa_to_sheet(resumenData);
-  ws['!cols'] = [{ wch: 25 }, { wch: 20 }];
-  XLSX.utils.book_append_sheet(wb, ws, 'Resumen');
+  const wb = XLSX.utils.book_new();
+  wb.Props = {
+    Title: 'Reporte Avanzado - AutoDrive Academy',
+    Subject: 'Indicadores operativos',
+    Author: 'AutoDrive Academy',
+    CreatedDate: new Date(),
+  };
 
-  const filename = `reporte_${reporte.periodo?.fechaInicio}_${reporte.periodo?.fechaFin}.xlsx`;
+  const wsResumen = XLSX.utils.aoa_to_sheet(resumen);
+  wsResumen['!cols'] = [{ wch: 28 }, { wch: 28 }, { wch: 16 }, { wch: 14 }];
+  wsResumen['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }];
+  wsResumen['!autofilter'] = { ref: `A6:D${Math.max(resumen.length, 6)}` };
+
+  const wsDetalle = XLSX.utils.json_to_sheet(detalles);
+  wsDetalle['!cols'] = [{ wch: 28 }, { wch: 28 }, { wch: 14 }, { wch: 14 }];
+  wsDetalle['!autofilter'] = { ref: `A1:D${Math.max(detalles.length + 1, 1)}` };
+
+  XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
+  XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle');
+
+  const filename = `reporte_operativo_${reporte.periodo?.fechaInicio}_${reporte.periodo?.fechaFin}.xlsx`;
   XLSX.writeFile(wb, filename);
 }
 
@@ -83,7 +103,7 @@ export default function ReporteTab({ sedeActiva }) {
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   const [metricasSeleccionadas, setMetricasSeleccionadas] = useState(
-    ['clases_completadas', 'uso_flota', 'aprobados_reprobados', 'ingresos']
+    ['clases_completadas', 'uso_flota', 'aprobados_reprobados']
   );
   const [reporte, setReporte] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -114,13 +134,12 @@ export default function ReporteTab({ sedeActiva }) {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold font-headline text-gray-900">Reporte Avanzado</h1>
-        <p className="text-sm text-gray-500">Genera reportes personalizados con exportacion a Excel -- {titleSede}</p>
+        <p className="text-sm text-gray-500">Genera reportes operativos con exportacion a Excel -- {titleSede}</p>
       </div>
 
-      {/* Formulario */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 text-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2 text-primary">
             <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/>
           </svg>
           Configurar Reporte
@@ -172,7 +191,7 @@ export default function ReporteTab({ sedeActiva }) {
             {reporte && (
               <button type="button" onClick={() => exportarExcel(reporte)}
                 className="bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-6 rounded-lg transition-colors flex items-center space-x-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>
                 </svg>
                 <span>Exportar Excel</span>
@@ -182,7 +201,6 @@ export default function ReporteTab({ sedeActiva }) {
         </form>
       </div>
 
-      {/* Resultado */}
       {reporte && (
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
           <div className="flex items-center justify-between">
@@ -198,10 +216,7 @@ export default function ReporteTab({ sedeActiva }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {reporte.metricas?.clases_completadas && (
               <div className="border border-gray-200 rounded-xl p-5">
-                <div className="flex items-center space-x-2 mb-3">
-                  <span className="text-primary"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
-                  <h3 className="font-bold text-gray-800">Clases Completadas</h3>
-                </div>
+                <h3 className="font-bold text-gray-800 mb-2">Clases Completadas</h3>
                 <p className="text-4xl font-black font-headline text-primary mb-1">{reporte.metricas.clases_completadas.total}</p>
                 <p className="text-xs text-gray-500">{reporte.metricas.clases_completadas.descripcion}</p>
               </div>
@@ -209,10 +224,7 @@ export default function ReporteTab({ sedeActiva }) {
 
             {reporte.metricas?.uso_flota && (
               <div className="border border-gray-200 rounded-xl p-5">
-                <div className="flex items-center space-x-2 mb-3">
-                  <span className="text-tertiary"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg></span>
-                  <h3 className="font-bold text-gray-800">Uso de Flota</h3>
-                </div>
+                <h3 className="font-bold text-gray-800 mb-3">Uso de Flota</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between"><span className="text-gray-600">Ocupados</span><span className="font-bold" style={{color:'#FF5722'}}>{reporte.metricas.uso_flota.vehiculosOcupados}</span></div>
                   <div className="flex justify-between"><span className="text-gray-600">Disponibles</span><span className="font-bold text-green-600">{reporte.metricas.uso_flota.vehiculosDisponibles}</span></div>
@@ -224,10 +236,7 @@ export default function ReporteTab({ sedeActiva }) {
 
             {reporte.metricas?.aprobados_reprobados && (
               <div className="border border-gray-200 rounded-xl p-5">
-                <div className="flex items-center space-x-2 mb-3">
-                  <span className="text-green-600"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
-                  <h3 className="font-bold text-gray-800">Aprobados vs Reprobados</h3>
-                </div>
+                <h3 className="font-bold text-gray-800 mb-3">Aprobados vs Reprobados</h3>
                 <div className="flex items-end space-x-4 mb-3">
                   <div><p className="text-3xl font-black font-headline text-green-600">{reporte.metricas.aprobados_reprobados.aprobados}</p><p className="text-xs text-gray-500">Aprobados</p></div>
                   <div><p className="text-3xl font-black font-headline text-red-500">{reporte.metricas.aprobados_reprobados.reprobados}</p><p className="text-xs text-gray-500">Reprobados</p></div>
@@ -239,17 +248,6 @@ export default function ReporteTab({ sedeActiva }) {
                 <div className="w-full bg-gray-100 rounded-full h-2 mt-2">
                   <div className="bg-green-500 h-2 rounded-full transition-all" style={{width:`${reporte.metricas.aprobados_reprobados.tasaAprobacion}%`}}></div>
                 </div>
-              </div>
-            )}
-
-            {reporte.metricas?.ingresos && (
-              <div className="border border-gray-200 rounded-xl p-5">
-                <div className="flex items-center space-x-2 mb-3">
-                  <span className="text-primary"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-                  <h3 className="font-bold text-gray-800">Ingresos</h3>
-                </div>
-                <p className="text-3xl font-black font-headline text-primary mb-1">{formatCLP(reporte.metricas.ingresos.totalIngresos)}</p>
-                <p className="text-xs text-gray-500">{reporte.metricas.ingresos.totalPagos} transacciones en el periodo</p>
               </div>
             )}
           </div>

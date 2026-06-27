@@ -6,14 +6,9 @@ function sedeLabel(s) {
   return s === '1' ? 'Sede Central' : 'Sede Norte';
 }
 
-function formatCLP(n) {
-  return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n);
-}
-
 export default function RendimientoMesTab({ sedeActiva }) {
   const [data, setData] = useState(null);
   const [ocupacion, setOcupacion] = useState([]);
-  const [ingresos, setIngresos] = useState(null);
   const [aprobados, setAprobados] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -26,11 +21,12 @@ export default function RendimientoMesTab({ sedeActiva }) {
     Promise.all([
       dashboardService.getRendimientoMes(sedeActiva),
       dashboardService.getOcupacionSede(sedeActiva),
-      dashboardService.getIngresos(sedeActiva, mesAnio),
       dashboardService.getAprobadosReprobados(sedeActiva, mesAnio),
-    ]).then(([rend, ocup, ing, apr]) => {
+    ]).then(([rend, ocup, apr]) => {
       if (cancelled) return;
-      setData(rend); setOcupacion(ocup || []); setIngresos(ing); setAprobados(apr);
+      setData(rend);
+      setOcupacion(ocup || []);
+      setAprobados(apr);
     }).catch(console.error).finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [sedeActiva]);
@@ -47,8 +43,7 @@ export default function RendimientoMesTab({ sedeActiva }) {
         <p className="text-sm text-gray-500 capitalize">{data.mes} -- {titleSede}</p>
       </div>
 
-      {/* KPI Cards principales */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Estudiantes Activos</p>
           <p className="text-3xl font-black font-headline text-primary">{data.estudiantesActivos}</p>
@@ -62,14 +57,8 @@ export default function RendimientoMesTab({ sedeActiva }) {
           <p className="text-3xl font-black font-headline" style={{color: data.tasaAprobacion >= 70 ? '#15803d' : '#dc2626'}}>{data.tasaAprobacion}%</p>
           <p className="text-xs text-gray-400 mt-1">{data.aprobados} aprobados / {data.reprobados} reprobados</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Ingresos del Mes</p>
-          <p className="text-3xl font-black font-headline text-primary">{formatCLP(data.ingresosMes)}</p>
-          <p className="text-xs text-gray-400 mt-1">{data.totalPagos} transacciones</p>
-        </div>
       </div>
 
-      {/* Aprobados vs Reprobados detalle */}
       {aprobados && aprobados.porTipo && aprobados.porTipo.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-lg font-bold font-headline text-gray-900 mb-4">Resultados de Examenes por Tipo</h2>
@@ -104,7 +93,6 @@ export default function RendimientoMesTab({ sedeActiva }) {
         </div>
       )}
 
-      {/* Ocupacion de vehiculos por sede */}
       {ocupacion.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-lg font-bold font-headline text-gray-900 mb-4">Ocupacion de Vehiculos por Sede</h2>
@@ -140,36 +128,6 @@ export default function RendimientoMesTab({ sedeActiva }) {
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-      )}
-
-      {/* Ingresos por concepto */}
-      {ingresos && ingresos.porConcepto && ingresos.porConcepto.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-bold font-headline text-gray-900 mb-4">Ingresos por Concepto</h2>
-          <div className="space-y-3">
-            {ingresos.porConcepto.map((c, i) => {
-              const pct = ingresos.totalIngresos > 0 ? ((c.total / ingresos.totalIngresos) * 100).toFixed(1) : 0;
-              return (
-                <div key={i} className="flex items-center space-x-4">
-                  <div className="flex-1">
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm font-medium text-gray-700">{c.concepto}</span>
-                      <span className="text-sm font-bold text-gray-900">{formatCLP(c.total)}</span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
-                      <div className="bg-primary h-2 rounded-full transition-all" style={{width:`${pct}%`}}></div>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-500 w-12 text-right">{pct}%</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between">
-            <span className="font-bold text-gray-800">Total</span>
-            <span className="font-black text-lg text-primary">{formatCLP(ingresos.totalIngresos)}</span>
           </div>
         </div>
       )}

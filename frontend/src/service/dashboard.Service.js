@@ -214,23 +214,6 @@ export const dashboardService = {
     }
   },
 
-  // GET /api/dashboard/ingresos?sedeId=&mes_anio=
-  getIngresos: async (sedeId = 'all', mesAnio = null) => {
-    try {
-      const params = new URLSearchParams();
-      if (sedeId && sedeId !== 'all') params.set('sedeId', sedeId);
-      if (mesAnio) params.set('mes_anio', mesAnio);
-      const qs = params.toString();
-      const url = `${API_BASE}/ingresos${qs ? '?' + qs : ''}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Error');
-      return await response.json();
-    } catch (error) {
-      console.error('getIngresos:', error);
-      return { totalIngresos: 0, totalPagos: 0, porConcepto: [], porSede: [] };
-    }
-  },
-
   // GET /api/dashboard/rendimiento-mes?sedeId=
   getRendimientoMes: async (sedeId = 'all') => {
     try {

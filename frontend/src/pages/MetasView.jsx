@@ -5,7 +5,6 @@ const MESES_LABEL = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Se
 
 const METRICAS_DISPONIBLES = [
   { value: 'clases_completadas', label: 'Clases Completadas', unidad: 'clases' },
-  { value: 'ingresos', label: 'Ingresos', unidad: 'CLP' },
   { value: 'estudiantes_activos', label: 'Estudiantes Activos', unidad: 'estudiantes' },
   { value: 'nuevos_estudiantes', label: 'Nuevos Estudiantes', unidad: 'estudiantes' },
   { value: 'aprobados', label: 'Examenes Aprobados', unidad: 'examenes' },
@@ -16,7 +15,6 @@ const METRICAS_DISPONIBLES = [
 
 const METRICAS_ALIAS = {
   clases_completadas: ['clases completadas', 'clases'],
-  ingresos: ['ingresos', 'ventas'],
   estudiantes_activos: ['estudiantes activos', 'alumnos activos'],
   nuevos_estudiantes: ['nuevos estudiantes', 'nuevos alumnos', 'matriculas'],
   aprobados: ['aprobados', 'examenes aprobados'],
@@ -46,13 +44,6 @@ function metricaInfo(nombre) {
 
 function formatValor(valor, unidad) {
   const numero = Number(valor) || 0;
-  if (unidad === 'CLP') {
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
-      maximumFractionDigits: 0,
-    }).format(numero);
-  }
   if (unidad === '%') return `${numero}%`;
   return new Intl.NumberFormat('es-CL', { maximumFractionDigits: 1 }).format(numero);
 }

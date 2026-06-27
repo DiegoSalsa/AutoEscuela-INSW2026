@@ -5,7 +5,7 @@ import { demoService } from '../service/demo.Service.js';
 const CONFIG = {
   estudiantes: {
     titulo: 'Modulo academico en construccion',
-    descripcion: 'Simula estudiantes, progreso teorico, resultados, pagos y reservas completadas para validar dashboard, metas y agenda.',
+    descripcion: 'Simula estudiantes, progreso teorico, resultados y reservas completadas para validar dashboard, metas y agenda.',
     boton: 'Cargar datos demo academicos',
     accion: demoService.cargarAcademico,
   },
