@@ -73,8 +73,8 @@ const iniciarScheduler = () => {
     }
   });
 
-  // Cada 10 min: enviar email de recordatorio 1 hora antes de la clase
-  cron.schedule('*/10 * * * *', async () => {
+  // Cada 30 min: enviar email de recordatorio 1 hora antes de la clase
+  cron.schedule('*/30 * * * *', async () => {
     try {
       const repo = AppDataSource.getRepository('Reserva');
       const reservas = await repo.createQueryBuilder('r')
