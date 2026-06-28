@@ -108,3 +108,22 @@
   color: var(--primary-color, #002366);
   font-weight: bold;
 }
+
+/* Días pasados: gris muy tenue y tachado, indicando historial */
+.cell.pasado {
+  color: #94a3b8;
+  text-decoration: line-through;
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: transparent;
+}
+
+/* Domingos: gris oscuro con fondo tenue, indicando día inhábil / fin de semana */
+.cell.domingo {
+  background-color: #f1f5f9;
+  color: #64748b;
+  font-weight: 500;
+  cursor: not-allowed;
+  text-decoration: none;
+  opacity: 1;
+}

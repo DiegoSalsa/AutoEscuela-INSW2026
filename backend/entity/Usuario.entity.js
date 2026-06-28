@@ -13,6 +13,7 @@ const Usuario = new EntitySchema({
     estado: { type: 'varchar', default: 'activo', nullable: true },
     sede_id: { type: 'int', nullable: true },
     especialidad: { type: 'varchar', nullable: true },
+    tipo_licencia: { type: 'varchar', length: 50, nullable: true },
     anios_experiencia: { type: 'int', default: 0, nullable: true },
     calificacion_promedio: { type: 'decimal', precision: 2, scale: 1, default: 0, nullable: true },
     total_clases_completadas: { type: 'int', default: 0, nullable: true },

@@ -62,6 +62,8 @@ export default function SelectorRecursos({ selecciones, onSelect, requiereVehicu
   }
 
   const isAdmin = !user || user.rol === 'admin';
+  const estSeleccionado = estudiantes.find(e => e.id === selecciones.estudianteId);
+  const licenciaEstudiante = user?.rol === 'estudiante' ? user?.tipo_licencia : estSeleccionado?.tipo_licencia;
 
   return (
     <div className="selector-recursos">
@@ -89,7 +91,20 @@ export default function SelectorRecursos({ selecciones, onSelect, requiereVehicu
         <label>Instructor</label>
         <select name="instructorId" value={selecciones.instructorId || ''} onChange={handleChange} disabled={!selecciones.sedeId}>
           <option value="">Seleccione Instructor...</option>
-          {instructores.map(i => <option key={i.id} value={i.id}>{i.nombre}</option>)}
+          {instructores.map(i => {
+            const licInst = i.tipo_licencia || i.especialidad;
+            const incompatible = licenciaEstudiante && licInst && licenciaEstudiante !== licInst;
+            return (
+              <option
+                key={i.id}
+                value={i.id}
+                disabled={incompatible}
+                style={incompatible ? { color: '#9ca3af', backgroundColor: '#f3f4f6' } : {}}
+              >
+                {i.nombre} {incompatible ? `(Incompatible - ${licInst})` : `(${licInst || 'General'})`}
+              </option>
+            );
+          })}
         </select>
       </div>
 

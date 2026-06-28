@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { getEstudiantes, getSedes } from '../service/reservas.Service';
+import { getEstudiantes, getInstructores, getSedes } from '../service/reservas.Service';
 import './LoginView.css';
 
 export default function LoginView({ onLogin }) {
   const [sedes, setSedes] = useState([]);
   const [estudiantes, setEstudiantes] = useState([]);
+  const [instructores, setInstructores] = useState([]);
   
-  const [rol, setRol] = useState(''); // 'admin' o 'estudiante'
+  const [rol, setRol] = useState(''); // 'admin', 'recepcionista', 'instructor' o 'estudiante'
   const [sedeId, setSedeId] = useState('');
   const [estudianteId, setEstudianteId] = useState('');
+  const [instructorId, setInstructorId] = useState('');
 
   // 1. cargar sedes al montar
   useEffect(() => {
@@ -23,22 +25,24 @@ export default function LoginView({ onLogin }) {
     fetchSedes();
   }, []);
 
-  // 2. cargar estudiantes cuando cambia la sede
+  // 2. cargar estudiantes o instructores cuando cambia la sede
   useEffect(() => {
-    if (!sedeId || rol !== 'estudiante') {
+    if (!sedeId) {
       setEstudiantes([]);
+      setInstructores([]);
       return;
     }
-    const fetchEst = async () => {
-      try {
-        const data = await getEstudiantes(sedeId);
+    if (rol === 'estudiante') {
+      getEstudiantes(sedeId).then(data => {
         setEstudiantes(data);
         if (data.length > 0) setEstudianteId(data[0].id.toString());
-      } catch (error) {
-        console.error('Error al cargar estudiantes', error);
-      }
-    };
-    fetchEst();
+      }).catch(err => console.error(err));
+    } else if (rol === 'instructor') {
+      getInstructores(sedeId).then(data => {
+        setInstructores(data);
+        if (data.length > 0) setInstructorId(data[0].id.toString());
+      }).catch(err => console.error(err));
+    }
   }, [sedeId, rol]);
 
   const handleLoginAdmin = () => {
@@ -50,7 +54,18 @@ export default function LoginView({ onLogin }) {
   };
 
   const handleLoginInstructor = () => {
-    onLogin({ id: 'instructor', label: 'Instructor', rol: 'instructor', estudianteId: null });
+    if (!instructorId) return;
+    const inst = instructores.find(i => i.id.toString() === instructorId);
+    if (inst) {
+      onLogin({
+        id: 'instructor',
+        label: inst.nombre || 'Instructor',
+        rol: 'instructor',
+        instructorId: inst.id,
+        sedeId: parseInt(sedeId, 10),
+        tipo_licencia: inst.tipo_licencia || inst.especialidad,
+      });
+    }
   };
 
   const handleLoginEstudiante = () => {
@@ -63,6 +78,7 @@ export default function LoginView({ onLogin }) {
         rol: 'estudiante',
         estudianteId: est.id,
         sedeId: parseInt(sedeId, 10),
+        tipo_licencia: est.tipo_licencia,
       });
     }
   };
@@ -106,20 +122,13 @@ export default function LoginView({ onLogin }) {
                   Entrar como Recepcionista
                 </button>
               </div>
-            ) : rol === 'instructor' ? (
-              <div className="form-group">
-                <p className="info-text">Ingreso como Instructor. Podrás ver tu módulo de instructores.</p>
-                <button className="login-simple-btn btn-instructor" onClick={handleLoginInstructor}>
-                  Entrar como Instructor
-                </button>
-              </div>
             ) : (
               <div className="form-group">
                 <label>1. Selecciona tu Sede:</label>
                 <select 
                   className="login-simple-select"
                   value={sedeId}
-                  onChange={e => { setSedeId(e.target.value); setEstudianteId(''); }}
+                  onChange={e => { setSedeId(e.target.value); setEstudianteId(''); setInstructorId(''); }}
                 >
                   <option value="">-- Elige una sede --</option>
                   {sedes.map(s => (
@@ -127,7 +136,7 @@ export default function LoginView({ onLogin }) {
                   ))}
                 </select>
 
-                {sedeId && (
+                {sedeId && rol === 'estudiante' && (
                   <>
                     <label>2. Selecciona tu Nombre:</label>
                     <select 
@@ -145,6 +154,30 @@ export default function LoginView({ onLogin }) {
                       className="login-simple-btn btn-student" 
                       onClick={handleLoginEstudiante}
                       disabled={!estudianteId}
+                    >
+                      Ingresar
+                    </button>
+                  </>
+                )}
+
+                {sedeId && rol === 'instructor' && (
+                  <>
+                    <label>2. Selecciona tu Nombre (Instructor):</label>
+                    <select 
+                      className="login-simple-select"
+                      value={instructorId}
+                      onChange={e => setInstructorId(e.target.value)}
+                    >
+                      {instructores.length === 0 && <option value="">No hay instructores en esta sede</option>}
+                      {instructores.map(i => (
+                        <option key={i.id} value={i.id}>{i.nombre} ({i.especialidad || 'General'})</option>
+                      ))}
+                    </select>
+
+                    <button 
+                      className="login-simple-btn btn-instructor" 
+                      onClick={handleLoginInstructor}
+                      disabled={!instructorId}
                     >
                       Ingresar
                     </button>

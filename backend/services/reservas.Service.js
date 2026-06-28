@@ -86,8 +86,13 @@ const crearReservaTransaccional = async (reservaData) => {
       ]);
 
       if (!estudiante) throw httpError('El estudiante no existe, no está activo o no pertenece a esta sede.', 404);
-      if (!instructor) throw httpError('El instructor no existe, no está activo o no pertenece a esta sede.', 404);
       if (!tipoClase) throw httpError('El tipo de clase no existe.', 404);
+
+      const licEst = estudiante.tipo_licencia;
+      const licInst = instructor.tipo_licencia || instructor.especialidad;
+      if (licEst && licInst && licEst !== licInst) {
+        throw httpError(`El estudiante busca la ${licEst}, por lo que no puede agendar clases con un instructor especialista en ${licInst}.`, 400);
+      }
 
       let vehiculo = null;
       if (vehiculoId) {
@@ -185,11 +190,11 @@ const obtenerReservas = async (filtros) => {
     console.log('IDs de teóricas:', teoricas.map(r => ({ id: r.id, tipo: r.tipo_clase_nombre })));
   }
 
-  // Convertir fechas a hora local para el frontend
+  // Devolver fechas sin doble conversión de zona horaria
   return resultados.map(r => ({
     ...r,
-    fecha_inicio: r.fecha_inicio ? toLocal(new Date(r.fecha_inicio)).toISOString() : null,
-    fecha_fin: r.fecha_fin ? toLocal(new Date(r.fecha_fin)).toISOString() : null,
+    fecha_inicio: r.fecha_inicio ? new Date(r.fecha_inicio).toISOString() : null,
+    fecha_fin: r.fecha_fin ? new Date(r.fecha_fin).toISOString() : null,
   }));
 };
 
@@ -206,8 +211,8 @@ const obtenerReservaPorId = async (id) => {
 
   return {
     ...reserva,
-    fecha_inicio: reserva.fecha_inicio ? toLocal(reserva.fecha_inicio).toISOString() : null,
-    fecha_fin: reserva.fecha_fin ? toLocal(reserva.fecha_fin).toISOString() : null,
+    fecha_inicio: reserva.fecha_inicio ? new Date(reserva.fecha_inicio).toISOString() : null,
+    fecha_fin: reserva.fecha_fin ? new Date(reserva.fecha_fin).toISOString() : null,
   };
 };
 

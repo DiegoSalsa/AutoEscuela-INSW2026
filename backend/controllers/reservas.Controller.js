@@ -2,6 +2,7 @@ const reservasService = require('../services/reservas.Service');
 const { emitirEventoReserva } = require('../services/socket');
 const { enviarConfirmacion, enviarModificacion, enviarCancelacion } = require('../services/notificaciones.Service');
 const { AppDataSource } = require('../db/data-source');
+const demoService = require('../services/demo.Service');
 
 const crearReserva = async (req, res) => {
   try {
@@ -110,6 +111,7 @@ const suspenderReservasVehiculo = async (req, res) => {
 
 const obtenerTiposClase = async (req, res) => {
   try {
+    await demoService.asegurarTiposClase();
     const repo = AppDataSource.getRepository('TipoClase');
     const tipos = await repo.find({ order: { id: 'ASC' } });
     res.json(tipos);

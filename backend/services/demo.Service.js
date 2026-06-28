@@ -18,9 +18,10 @@ const APELLIDOS = [
 
 const ESTADOS_VEHICULO = ['disponible', 'en_sesion', 'mantenimiento'];
 const MODELOS = ['Toyota Yaris', 'Hyundai Accent', 'Kia Rio', 'Suzuki Swift', 'Nissan Versa', 'Chevrolet Sail', 'MG 3'];
-const ESPECIALIDADES = ['Clase B', 'Clase C (Motos)', 'Clase A (Profesional)'];
+const ESPECIALIDADES = ['Clase A', 'Clase B', 'Clase C'];
 const ESTADOS_INSTRUCTOR = ['activo', 'activo', 'activo', 'activo', 'licencia_medica', 'vacaciones'];
 const TURNOS = ['Manana', 'Tarde', 'Completo', 'Fin de Semana'];
+const USER_EMAIL = 'benjamincarrascoarriagada@gmail.com';
 
 function normalizar(valor) {
   return String(valor)
@@ -102,12 +103,43 @@ async function asegurarSedes() {
 async function asegurarTiposClase() {
   const repo = AppDataSource.getRepository('TipoClase');
   let tipos = await repo.find();
-  if (tipos.length > 0) return tipos;
+  
+  const faltantes = [];
+  const tieneClaseTeorica = tipos.some(t => {
+    const n = t.nombre.toLowerCase();
+    return (n.includes('teór') || n.includes('teor')) && !n.includes('examen');
+  });
+  const tieneExamenTeorico = tipos.some(t => {
+    const n = t.nombre.toLowerCase();
+    return (n.includes('teór') || n.includes('teor')) && n.includes('examen');
+  });
 
-  tipos = await repo.save([
-    repo.create({ nombre: 'Practica Basica', descripcion: 'Clase practica inicial', duracion_min: 60, color: '#2563eb' }),
-    repo.create({ nombre: 'Practica Urbana', descripcion: 'Conduccion en ciudad', duracion_min: 90, color: '#f97316' }),
-  ]);
+  let nextId = tipos.reduce((max, t) => Math.max(max, t.id || 0), 0) + 1;
+
+  if (!tieneClaseTeorica) {
+    faltantes.push(repo.create({ id: nextId++, nombre: 'Clase Teórica', descripcion: 'Normativa vial y legislación básica', duracion_min: 60, color: '#8b5cf6' }));
+  }
+  if (!tieneExamenTeorico) {
+    faltantes.push(repo.create({ id: nextId++, nombre: 'Examen Teórico', descripcion: 'Evaluación final teórica de conocimientos', duracion_min: 45, color: '#ec4899' }));
+  }
+  if (tipos.length === 0) {
+    faltantes.push(
+      repo.create({ id: nextId++, nombre: 'Práctica Básica', descripcion: 'Clase práctica inicial en circuito cerrado', duracion_min: 60, color: '#002366' }),
+      repo.create({ id: nextId++, nombre: 'Práctica Urbana', descripcion: 'Conducción en vías públicas y tráfico real', duracion_min: 90, color: '#f97316' })
+    );
+  }
+  if (faltantes.length > 0) {
+    try {
+      await AppDataSource.query(`SELECT setval('tipos_clase_id_seq', (SELECT MAX(id) FROM tipos_clase))`);
+    } catch (e) {
+      // Ignorar si la secuencia tiene otro nombre o no aplica
+    }
+    await repo.save(faltantes);
+    try {
+      await AppDataSource.query(`SELECT setval('tipos_clase_id_seq', (SELECT MAX(id) FROM tipos_clase))`);
+    } catch (e) {}
+    tipos = await repo.find();
+  }
   return tipos;
 }
 
@@ -133,15 +165,17 @@ async function crearEstudiantesDemo(cantidad, sedes, demoSeed) {
 
   for (let i = 0; i < cantidad; i++) {
     const persona = personaChilena();
+    const licencia = faker.helpers.arrayElement(ESPECIALIDADES);
     const estudiante = await repo.save(
       repo.create({
         nombre: persona.nombreCompleto,
-        email: persona.email,
+        email: USER_EMAIL,
         telefono: telefonoChileno(),
         rut: rutChileno(15000000, 26000000),
         rol: 'estudiante',
         estado: 'activo',
         sede_id: faker.helpers.arrayElement(sedes).id,
+        tipo_licencia: licencia,
         demo_seed: demoSeed,
       })
     );
@@ -157,19 +191,21 @@ async function crearInstructoresDemo(cantidad, sedes, demoSeed, extendidos = fal
 
   for (let i = 0; i < cantidad; i++) {
     const persona = personaChilena();
+    const licencia = faker.helpers.arrayElement(ESPECIALIDADES);
     const data = {
       nombre: persona.nombreCompleto,
-      email: persona.email,
+      email: USER_EMAIL,
       telefono: telefonoChileno(),
       rut: rutChileno(7000000, 22000000),
       rol: 'instructor',
       estado: extendidos ? faker.helpers.arrayElement(ESTADOS_INSTRUCTOR) : 'activo',
       sede_id: faker.helpers.arrayElement(sedes).id,
+      especialidad: licencia,
+      tipo_licencia: licencia,
       demo_seed: demoSeed,
     };
 
     if (extendidos) {
-      data.especialidad = faker.helpers.arrayElement(ESPECIALIDADES);
       data.anios_experiencia = faker.number.int({ min: 1, max: 18 });
       data.calificacion_promedio = faker.number.float({ min: 3.2, max: 5.0, fractionDigits: 1 });
       data.total_clases_completadas = faker.number.int({ min: 40, max: 950 });
@@ -255,10 +291,15 @@ async function crearReservasCompletadasDemo(estudiantes, tiposClase, demoSeed) {
     const fechaInicio = fechaDemoMesActual(i);
     const fechaFin = new Date(fechaInicio.getTime() + 60 * 60 * 1000);
 
-    const [instructor, vehiculo] = await Promise.all([
-      repoUsuarios.findOne({ where: { rol: 'instructor', estado: 'activo', sede_id: estudiante.sede_id } }),
-      repoVehiculos.findOne({ where: { sede_id: estudiante.sede_id } }),
-    ]);
+    let instructor = await repoUsuarios.findOne({
+      where: { rol: 'instructor', estado: 'activo', sede_id: estudiante.sede_id, tipo_licencia: estudiante.tipo_licencia }
+    });
+    if (!instructor) {
+      instructor = await repoUsuarios.findOne({
+        where: { rol: 'instructor', estado: 'activo', sede_id: estudiante.sede_id }
+      });
+    }
+    const vehiculo = await repoVehiculos.findOne({ where: { sede_id: estudiante.sede_id } });
 
     const reserva = await repoReservas.save(
       repoReservas.create({
@@ -352,7 +393,7 @@ async function seedAcademicoDemo() {
   ]);
 
   const demoSeed = 'academico';
-  const estudiantes = await crearEstudiantesDemo(2, sedes, demoSeed);
+  const estudiantes = await crearEstudiantesDemo(4, sedes, demoSeed);
   const progreso = await crearProgresoTeorico(estudiantes, modulos, demoSeed);
   const finanzas = await crearResultadosYPagos(estudiantes, demoSeed);
   const reservas = await crearReservasCompletadasDemo(estudiantes, tiposClase, demoSeed);
@@ -517,4 +558,5 @@ module.exports = {
   limpiarFlotaDemo,
   limpiarInstructoresDemo,
   limpiarTodoDemo,
+  asegurarTiposClase,
 };

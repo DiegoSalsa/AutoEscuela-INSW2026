@@ -9,6 +9,7 @@ const ModuloTeorico = require('./ModuloTeorico.entity');
 const EstudianteModuloProgreso = require('./EstudianteModuloProgreso.entity');
 const ResultadoExamen = require('./ResultadoExamen.entity');
 const Pago = require('./Pago.entity');
+const EvaluacionInstructor = require('./EvaluacionInstructor.entity');
 
 module.exports = {
   Sede,
@@ -21,4 +22,5 @@ module.exports = {
   EstudianteModuloProgreso,
   ResultadoExamen,
   Pago,
+  EvaluacionInstructor,
 };

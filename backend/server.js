@@ -9,6 +9,7 @@ const apiRoutes = require('./routes/index.Routes');
 const { initSocket } = require('./services/socket');
 const { initMailer } = require('./services/notificaciones.Service');
 const { iniciarScheduler } = require('./jobs/scheduler');
+const demoService = require('./services/demo.Service');
 
 const app = express();
 const PORT = 80;
@@ -36,6 +37,7 @@ AppDataSource.initialize()
   .then(async () => {
     console.log('TypeORM conectado a PostgreSQL');
 
+    await demoService.asegurarTiposClase();
     await initMailer();
 
     iniciarScheduler();

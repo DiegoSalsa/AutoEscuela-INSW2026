@@ -10,7 +10,9 @@ import {
   isSameMonth, 
   isSameDay, 
   addDays,
-  isToday
+  isToday,
+  isBefore,
+  startOfDay
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { getDiasOcupados } from '../service/reservas.Service';
@@ -44,9 +46,9 @@ export default function Calendario({ fechaSeleccionada, onSelectFecha, seleccion
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
 
-  const onDateClick = (day, isFull) => {
-    // bloquear domingos y días llenos
-    if (day.getDay() !== 0 && !isFull) {
+  const onDateClick = (day, isFull, isPasado) => {
+    // bloquear domingos, días llenos y días pasados
+    if (day.getDay() !== 0 && !isFull && !isPasado) {
       onSelectFecha(day);
     }
   };
@@ -95,6 +97,7 @@ export default function Calendario({ fechaSeleccionada, onSelectFecha, seleccion
         const diaNum = parseInt(formattedDate, 10);
         const isFull = isSameMonth(day, monthStart) && diasLlenos.includes(diaNum);
         const isCurrentDay = isToday(day);
+        const isPasado = isBefore(day, startOfDay(new Date())) && !isCurrentDay;
 
         days.push(
           <div
@@ -102,13 +105,14 @@ export default function Calendario({ fechaSeleccionada, onSelectFecha, seleccion
               !isSameMonth(day, monthStart) ? 'disabled' : 
               isSelected ? 'selected' : 
               isFull ? 'full' :
-              isCurrentDay ? 'today' : ''
+              isCurrentDay ? 'today' : 
+              isPasado ? 'disabled pasado' : ''
             } ${isDomingo ? 'disabled domingo' : ''}`}
             key={day}
-            onClick={() => onDateClick(cloneDay, isFull)}
+            onClick={() => onDateClick(cloneDay, isFull, isPasado)}
           >
             <span className="number">{formattedDate}</span>
-            {(!isDomingo && isSameMonth(day, monthStart) && !isSelected && !isFull) && <span className="dot"></span>}
+            {(!isDomingo && !isPasado && isSameMonth(day, monthStart) && !isSelected && !isFull) && <span className="dot"></span>}
           </div>
         );
         day = addDays(day, 1);

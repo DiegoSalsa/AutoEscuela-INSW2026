@@ -7,13 +7,14 @@ import ReservasView from './ReservasView';
 import InstructoresView from './InstructoresView';
 import EstudiantesView from './EstudiantesView';
 import FlotaView from './FlotaView';
+import InstructorPortalView from './InstructorPortalView';
 import Proximamente from '../components/Proximamente';
 
 export default function MainLayout({ user, onLogout }) {
   // Vista inicial según rol
   const vistaInicial = () => {
     if (user?.rol === 'estudiante') return 'agenda';
-    if (user?.rol === 'instructor') return 'instructores';
+    if (user?.rol === 'instructor') return 'portal_instructor';
     return 'dashboard';
   };
   const [vistaActual, setVistaActual] = useState(vistaInicial());
@@ -34,7 +35,9 @@ export default function MainLayout({ user, onLogout }) {
       case 'metas':
         return <MetasView sedeActiva={sedeActiva} user={user} />;
       case 'agenda':
-        return <ReservasView user={user} />;
+        return <ReservasView user={user} sedeActiva={sedeActiva} />;
+      case 'portal_instructor':
+        return <InstructorPortalView user={user} />;
       case 'instructores':
         return <InstructoresView sedeActiva={sedeActiva} />;
       case 'estudiantes':

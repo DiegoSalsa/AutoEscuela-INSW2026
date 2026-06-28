@@ -85,6 +85,15 @@ const bloqueInfoTipoClase = (tipoClase) => {
 };
 
 
+// Helper para tabla de detalles unificada
+const construirTablaDetalles = (fechaFormateada, horaInicio, horaFin, tipoClase) => {
+  return `<table style="background-color:#f8fafc;border-radius:10px;overflow:hidden;margin:16px 0;width:100%;border:1px solid #e2e8f0;">
+    <tr><td style="padding:12px 16px;font-weight:600;color:#374151;border-bottom:1px solid #f1f5f9;">Fecha:</td><td style="padding:12px 16px;text-transform:capitalize;color:#1e293b;border-bottom:1px solid #f1f5f9;">${fechaFormateada}</td></tr>
+    ${horaInicio && horaFin ? `<tr><td style="padding:12px 16px;font-weight:600;color:#374151;border-bottom:1px solid #f1f5f9;">Horario:</td><td style="padding:12px 16px;color:#1e293b;border-bottom:1px solid #f1f5f9;">${horaInicio} — ${horaFin} hrs</td></tr>` : ''}
+    ${bloqueInfoTipoClase(tipoClase)}
+  </table>`;
+};
+
 // Funciones de envío específicas
 const enviarConfirmacion = async (reserva, emailEstudiante, sede, tipoClase) => {
   const fecha = new Date(reserva.fecha_inicio);
@@ -95,31 +104,31 @@ const enviarConfirmacion = async (reserva, emailEstudiante, sede, tipoClase) => 
   const subject = `Reserva Confirmada — ${fechaFormateada}`;
   const contenido = `
     <div style="text-align:center;margin-bottom:24px;">
-      <h2 style="margin:16px 0 4px;color:#166534;font-size:22px;">Reserva Confirmada</h2>
+      <h2 style="margin:16px 0 4px;color:#002366;font-size:22px;">Reserva Confirmada</h2>
       <p style="margin:0;color:#6b7280;">Tu clase ha sido agendada exitosamente.</p>
     </div>
-    <table style="background-color:#f8fafc;border-radius:10px;overflow:hidden;margin:16px 0;width:100%;">
-      <tr><td style="padding:10px 16px;font-weight:600;">Fecha:</td><td style="padding:10px 16px;text-transform:capitalize;">${fechaFormateada}</td></tr>
-      <tr><td style="padding:10px 16px;font-weight:600;">Horario:</td><td style="padding:10px 16px;">${horaInicio} — ${horaFin}</td></tr>
-      ${bloqueInfoTipoClase(tipoClase)}
-    </table>
+    ${construirTablaDetalles(fechaFormateada, horaInicio, horaFin, tipoClase)}
     ${bloqueInfoSede(sede)}
     <p style="margin:24px 0 0;color:#6b7280;font-size:13px;text-align:center;">Recuerda llegar 10 minutos antes de tu clase.</p>
   `;
   await enviarEmail(emailEstudiante, subject, emailWrapper(contenido));
 };
 
-const enviarCancelacion = async (reserva, emailEstudiante, sede) => {
+const enviarCancelacion = async (reserva, emailEstudiante, sede, tipoClase = null) => {
   const fecha = new Date(reserva.fecha_inicio);
   const fechaFormateada = fecha.toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const horaInicio = fecha.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+  const horaFin = new Date(reserva.fecha_fin).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+
   const subject = `Reserva Cancelada — ${fechaFormateada}`;
   const contenido = `
     <div style="text-align:center;margin-bottom:24px;">
       <h2 style="margin:16px 0 4px;color:#991b1b;font-size:22px;">Reserva Cancelada</h2>
       <p style="margin:0;color:#6b7280;">Tu reserva del ${fechaFormateada} ha sido cancelada.</p>
     </div>
+    ${construirTablaDetalles(fechaFormateada, horaInicio, horaFin, tipoClase)}
     ${bloqueInfoSede(sede)}
-    <div style="text-align:center;margin-top:24px;"><p style="color:#374151;">Puedes agendar una nueva clase en cualquier momento.</p></div>
+    <div style="text-align:center;margin-top:24px;"><p style="color:#374151;font-size:13px;">Puedes agendar una nueva clase en cualquier momento desde tu portal.</p></div>
   `;
   await enviarEmail(emailEstudiante, subject, emailWrapper(contenido));
 };
@@ -132,34 +141,30 @@ const enviarModificacion = async (reserva, emailEstudiante, sede, tipoClase) => 
   const subject = `Reserva Modificada — ${fechaFormateada}`;
   const contenido = `
     <div style="text-align:center;margin-bottom:24px;">
-      <h2 style="margin:16px 0 4px;color:#1e40af;font-size:22px;">Reserva Modificada</h2>
+      <h2 style="margin:16px 0 4px;color:#002366;font-size:22px;">Reserva Modificada</h2>
       <p style="margin:0;color:#6b7280;">Tu reserva ha sido actualizada con los siguientes datos.</p>
     </div>
-    <table style="background-color:#f8fafc;border-radius:10px;overflow:hidden;margin:16px 0;width:100%;">
-      <tr><td style="padding:10px 16px;font-weight:600;">Fecha:</td><td style="padding:10px 16px;text-transform:capitalize;">${fechaFormateada}</td></tr>
-      <tr><td style="padding:10px 16px;font-weight:600;">Horario:</td><td style="padding:10px 16px;">${horaInicio} — ${horaFin}</td></tr>
-      ${bloqueInfoTipoClase(tipoClase)}
-    </table>
+    ${construirTablaDetalles(fechaFormateada, horaInicio, horaFin, tipoClase)}
     ${bloqueInfoSede(sede)}
-    <p style="margin:24px 0 0;color:#6b7280;font-size:13px;text-align:center;">Si no realizaste este cambio, contacta a la autoescuela.</p>
+    <p style="margin:24px 0 0;color:#6b7280;font-size:13px;text-align:center;">Si no realizaste este cambio, contacta inmediatamente a la autoescuela.</p>
   `;
   await enviarEmail(emailEstudiante, subject, emailWrapper(contenido));
 };
 
-const enviarRecordatorio = async (reserva, emailEstudiante, sede) => {
+const enviarRecordatorio = async (reserva, emailEstudiante, sede, tipoClase = null) => {
   const fecha = new Date(reserva.fecha_inicio);
   const horaInicio = fecha.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+  const horaFin = new Date(reserva.fecha_fin).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
   const fechaFormateada = fecha.toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  const subject = `Recordatorio: Tu clase es en 1 hora`;
+  const subject = `Recordatorio: Tu clase comienza pronto (${horaInicio} hrs)`;
   const contenido = `
     <div style="text-align:center;margin-bottom:24px;">
-      <h2 style="margin:16px 0 4px;color:#92400e;font-size:22px;">Tu clase empieza pronto</h2>
+      <h2 style="margin:16px 0 4px;color:#002366;font-size:22px;">Tu clase empieza pronto</h2>
       <p style="margin:0;color:#6b7280;">Tienes una clase programada para las <strong>${horaInicio}</strong> hrs.</p>
     </div>
-    <table style="background-color:#fffbeb;border-radius:10px;padding:16px 20px;margin:16px 0;border-left:4px solid #f59e0b;width:100%;">
-      <tr><td><p style="margin:0 0 4px;font-size:14px;font-weight:600;color:#92400e;">${fechaFormateada}</p><p style="margin:0;font-size:13px;color:#78716c;">Recuerda llegar con tiempo a la sede.</p></td></tr>
-    </table>
+    ${construirTablaDetalles(fechaFormateada, horaInicio, horaFin, tipoClase)}
     ${bloqueInfoSede(sede)}
+    <p style="margin:24px 0 0;color:#6b7280;font-size:13px;text-align:center;">Recuerda llegar puntualmente a tu sesión.</p>
   `;
   await enviarEmail(emailEstudiante, subject, emailWrapper(contenido));
 };

@@ -13,7 +13,7 @@ import ReservasList from '../components/ReservasList';
 import '../App.css';
 import './ReservasView.css';
 
-export default function ReservasView({ user }) {
+export default function ReservasView({ user, sedeActiva }) {
   const ESTADO_INICIAL = {
     sedeId: user.rol === 'estudiante' ? user.sedeId : null,
     estudianteId: user.rol === 'estudiante' ? user.estudianteId : null,
@@ -45,7 +45,8 @@ export default function ReservasView({ user }) {
     const tipo = tiposClase.find(t => t.id === tipoId);
     if (!tipo) return true;
     const nombreLower = tipo.nombre.toLowerCase();
-    return !nombreLower.includes('teórica') && !nombreLower.includes('teorica');
+    const esTeorica = nombreLower.includes('teór') || nombreLower.includes('teor');
+    return !esTeorica;
   };
 
   useEffect(() => {
@@ -180,7 +181,7 @@ export default function ReservasView({ user }) {
         </div>
       )}
       {tab === 'lista' && !editandoId && (
-        <ReservasList rol={user.rol} estudianteId={user.estudianteId} onEditar={iniciarEdicion} />
+        <ReservasList rol={user.rol} estudianteId={user.estudianteId} onEditar={iniciarEdicion} sedeActiva={sedeActiva} />
       )}
       {(tab === 'nueva' || editandoId) && (
         <div className="rv-form">
