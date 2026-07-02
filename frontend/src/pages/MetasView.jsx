@@ -53,6 +53,11 @@ function sedeLabel(sedeActiva) {
   return sedeActiva === '1' ? 'Central' : 'Norte';
 }
 
+function mesActual() {
+  const hoy = new Date();
+  return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+}
+
 /* ── Tarjeta de Meta ── */
 function MetaCard({ meta, onEditar, onEliminar }) {
   let mesDisplay = '';
@@ -159,7 +164,7 @@ export default function MetasView({ sedeActiva }) {
   const [editingId, setEditingId] = useState(null);
   const [metrica, setMetrica] = useState('');
   const [valor, setValor] = useState('');
-  const [mes, setMes] = useState('');
+  const [periodo, setPeriodo] = useState(mesActual());
 
   const cargarMetas = useCallback(async () => {
     try {
@@ -181,32 +186,26 @@ export default function MetasView({ sedeActiva }) {
     setEditingId(null);
     setMetrica('');
     setValor('');
-    setMes('');
+    setPeriodo(mesActual());
   }, []);
 
   const iniciarEdicion = useCallback((meta) => {
     setEditingId(meta.id);
     setMetrica(metricaInfo(meta.metrica_nombre).value || '');
     setValor(meta.valor_esperado ?? '');
-    if (meta.mes_anio) {
-      const parts = meta.mes_anio.split('-');
-      setMes(parseInt(parts[1], 10).toString());
-    } else {
-      setMes('');
-    }
+    setPeriodo(meta.mes_anio || mesActual());
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const mesNum = parseInt(mes, 10);
-    if (isNaN(mesNum) || mesNum < 1 || mesNum > 12) {
-      alert('El mes debe ser un número entre 1 y 12.');
+    const mesNum = parseInt(periodo.slice(5), 10);
+    if (!/^\d{4}-\d{2}$/.test(periodo) || isNaN(mesNum) || mesNum < 1 || mesNum > 12) {
+      alert('Selecciona un periodo valido.');
       return;
     }
 
-    const anio = new Date().getFullYear();
-    const mesAnio = `${anio}-${String(mesNum).padStart(2, '0')}`;
+    const mesAnio = periodo;
 
     const payload = {
       metrica_nombre: metrica,
@@ -307,14 +306,11 @@ export default function MetasView({ sedeActiva }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mes (1-12)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Periodo</label>
             <input
-              type="number"
-              min="1"
-              max="12"
-              value={mes}
-              onChange={(e) => setMes(e.target.value)}
-              placeholder="Mes"
+              type="month"
+              value={periodo}
+              onChange={(e) => setPeriodo(e.target.value)}
               className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-tertiary focus:border-tertiary outline-none"
               required
             />
