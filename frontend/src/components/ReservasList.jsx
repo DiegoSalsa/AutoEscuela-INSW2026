@@ -21,7 +21,7 @@ function diasDesde(fecha) {
   return (Date.now() - new Date(fecha).getTime()) / (1000 * 60 * 60 * 24);
 }
 
-export default function ReservasList({ rol, estudianteId, onEditar }) {
+export default function ReservasList({ rol, estudianteId, onEditar, sedeActiva }) {
   const esAdmin = rol === 'admin';
 
   const [reservas, setReservas] = useState([]);
@@ -37,6 +37,9 @@ export default function ReservasList({ rol, estudianteId, onEditar }) {
     setError(null);
     try {
       const filtros = esAdmin ? {} : { estudianteId };
+      if (sedeActiva && sedeActiva !== 'all') {
+        filtros.sedeId = sedeActiva;
+      }
       if (fechaInicioBuscador) filtros.fechaInicio = fechaInicioBuscador;
       if (fechaFinBuscador) filtros.fechaFin = fechaFinBuscador;
       
@@ -47,7 +50,7 @@ export default function ReservasList({ rol, estudianteId, onEditar }) {
     } finally {
       setCargando(false);
     }
-  }, [esAdmin, estudianteId, fechaInicioBuscador, fechaFinBuscador]);
+  }, [esAdmin, estudianteId, fechaInicioBuscador, fechaFinBuscador, sedeActiva]);
 
   useEffect(() => { cargar(); }, [cargar]);
 

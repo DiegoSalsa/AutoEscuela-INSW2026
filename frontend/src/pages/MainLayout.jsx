@@ -4,14 +4,20 @@ import TopBar from '../components/TopBar';
 import DashboardView from './DashboardView';
 import MetasView from './MetasView';
 import ReservasView from './ReservasView';
-import Proximamente from '../components/Proximamente';
-import EstudiantesView from './EstudiantesView';
 import InstructoresView from './InstructoresView';
+import EstudiantesView from './EstudiantesView';
 import FlotaView from './FlotaView';
+import InstructorPortalView from './InstructorPortalView';
+import Proximamente from '../components/Proximamente';
 
 export default function MainLayout({ user, onLogout }) {
-  // Si es estudiante, solo tiene acceso a agenda
-  const [vistaActual, setVistaActual] = useState(user?.rol === 'admin' ? 'dashboard' : 'agenda');
+  // Vista inicial según rol
+  const vistaInicial = () => {
+    if (user?.rol === 'estudiante') return 'agenda';
+    if (user?.rol === 'instructor') return 'portal_instructor';
+    return 'dashboard';
+  };
+  const [vistaActual, setVistaActual] = useState(vistaInicial());
   const [sedeActiva, setSedeActiva] = useState('all');
 
   const handleSetVista = useCallback((vista) => {
@@ -29,11 +35,13 @@ export default function MainLayout({ user, onLogout }) {
       case 'metas':
         return <MetasView sedeActiva={sedeActiva} user={user} />;
       case 'agenda':
-        return <ReservasView user={user} />;
-      case 'estudiantes':
-        return <EstudiantesView sedeActiva={sedeActiva} />;
+        return <ReservasView user={user} sedeActiva={sedeActiva} />;
+      case 'portal_instructor':
+        return <InstructorPortalView user={user} />;
       case 'instructores':
         return <InstructoresView sedeActiva={sedeActiva} />;
+      case 'estudiantes':
+        return <EstudiantesView sedeActiva={sedeActiva} />;
       case 'flota':
         return <FlotaView sedeActiva={sedeActiva} />;
       default:

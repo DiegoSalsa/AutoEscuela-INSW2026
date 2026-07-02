@@ -6,11 +6,8 @@ const { AppDataSource } = require('../db/data-source');
 const crearReserva = async (req, res) => {
   try {
     const nuevaReserva = await reservasService.crearReservaTransaccional(req.body);
-
-    // Notificar en tiempo real por WebSocket
     emitirEventoReserva('reserva:creada', nuevaReserva);
 
-    // Enviar email de confirmacion (fire-and-forget, no bloquea la API)
     const repoUsuario = AppDataSource.getRepository('Usuario');
     const repoSede = AppDataSource.getRepository('Sede');
 
@@ -36,16 +33,13 @@ const crearReserva = async (req, res) => {
     console.error('Error en controlador de reservas:', error.message);
     const statusCode = error.status || 500;
     const response = { error: error.message || 'Error interno del servidor' };
-
     res.status(statusCode).json(response);
   }
 };
 
-// Obtener lista de reservas con filtros opcionales
 const obtenerReservas = async (req, res) => {
   try {
     const { fi, ff, s, i, v, e } = req.validatedQuery || req.query;
-
     const reservas = await reservasService.obtenerReservas({
       fechaInicio: fi ? (fi instanceof Date ? fi.toISOString() : (fi.includes('T') ? fi : `${fi}T00:00:00.000Z`)) : undefined,
       fechaFin: ff ? (ff instanceof Date ? ff.toISOString() : (ff.includes('T') ? ff : `${ff}T23:59:59.999Z`)) : undefined,
@@ -61,19 +55,16 @@ const obtenerReservas = async (req, res) => {
   }
 };
 
-// Obtener horarios ocupados para el calendario
 const obtenerHorariosOcupados = async (req, res) => {
   try {
     let { vi, fi, ff, si, ii, ei } = req.query;
-    const vehiculoId = vi;
-    const fechaInicio = fi ? (fi.includes('T') ? fi : `${fi}T00:00:00.000Z`) : undefined;
-    const fechaFin = ff ? (ff.includes('T') ? ff : `${ff}T23:59:59.999Z`) : undefined;
-    const sedeId = si;
-    const instructorId = ii;
-    const estudianteId = ei;
-
     const ocupados = await reservasService.obtenerHorariosOcupados({
-      fechaInicio, fechaFin, sedeId, instructorId, vehiculoId, estudianteId
+      fechaInicio: fi ? (fi.includes('T') ? fi : `${fi}T00:00:00.000Z`) : undefined,
+      fechaFin: ff ? (ff.includes('T') ? ff : `${ff}T23:59:59.999Z`) : undefined,
+      sedeId: si,
+      instructorId: ii,
+      vehiculoId: vi,
+      estudianteId: ei
     });
     res.json(ocupados);
   } catch (error) {
@@ -100,17 +91,13 @@ const obtenerDiasOcupados = async (req, res) => {
   }
 };
 
-// Suspender reservas futuras de un vehiculo (para mantenimiento)
 const suspenderReservasVehiculo = async (req, res) => {
   try {
     const vehiculoId = parseInt(req.params.vehiculoId, 10);
-
     if (!vehiculoId || vehiculoId <= 0) {
       return res.status(400).json({ error: 'vehiculoId debe ser un número entero positivo' });
     }
-
     const afectadas = await reservasService.suspenderReservasVehiculo(vehiculoId);
-
     res.json({
       mensaje: `Se suspendieron ${afectadas} reserva(s) del vehículo #${vehiculoId}`,
       afectadas,
@@ -121,9 +108,8 @@ const suspenderReservasVehiculo = async (req, res) => {
   }
 };
 
-// Obtener todos los tipos de clase disponibles
 const obtenerTiposClase = async (req, res) => {
-  try { 
+  try {
     const repo = AppDataSource.getRepository('TipoClase');
     const tipos = await repo.find({ order: { id: 'ASC' } });
     res.json(tipos);
@@ -132,8 +118,6 @@ const obtenerTiposClase = async (req, res) => {
     res.status(500).json({ error: 'Error al obtener los tipos de clase' });
   }
 };
-
-// Endpoints de recursos para el selector de reservas
 
 const obtenerSedes = async (_req, res) => {
   try {
@@ -163,10 +147,26 @@ const obtenerEstudiantes = async (req, res) => {
 const obtenerInstructores = async (req, res) => {
   try {
     const { sedeId } = req.query;
-    const where = { rol: 'instructor', estado: 'activo' };
-    if (sedeId) where.sede_id = parseInt(sedeId, 10);
     const repo = AppDataSource.getRepository('Usuario');
-    const instructores = await repo.find({ where, order: { nombre: 'ASC' } });
+    const qb = repo.createQueryBuilder('u')
+      .select([
+        'u.id AS id',
+        'u.nombre AS nombre',
+        'u.email AS email',
+        'u.telefono AS telefono',
+        'u.rut AS rut',
+        'u.rol AS rol',
+        'u.estado AS estado',
+        'u.sede_id AS sede_id',
+        'u.tipo_clase AS tipo_clase',
+        'u.especialidad AS especialidad',
+      ])
+      .where("u.rol = 'instructor'")
+      .andWhere("u.estado = 'activo'");
+
+    if (sedeId) qb.andWhere('u.sede_id = :sedeId', { sedeId: parseInt(sedeId, 10) });
+
+    const instructores = await qb.orderBy('u.nombre', 'ASC').getRawMany();
     res.json(instructores);
   } catch (error) {
     console.error('Error en obtenerInstructores:', error.message);
@@ -188,8 +188,6 @@ const obtenerVehiculos = async (req, res) => {
   }
 };
 
-
-// GET /reservas/:id — obtener una reserva por ID
 const obtenerReservaPorId = async (req, res) => {
   try {
     const { id } = req.params;
@@ -201,11 +199,10 @@ const obtenerReservaPorId = async (req, res) => {
   }
 };
 
-// PUT /reservas/:id
+// ================== MODIFICADAS ==================
 const actualizarReserva = async (req, res) => {
   try {
     const { id } = req.params;
-    // El header x-rol lo envia el frontend segun el usuario seleccionado
     const esAdmin = req.headers['x-rol'] === 'admin';
     const reserva = await reservasService.actualizarReservaTransaccional(
       parseInt(id, 10),
@@ -214,7 +211,6 @@ const actualizarReserva = async (req, res) => {
     );
     emitirEventoReserva('reserva:actualizada', reserva);
 
-    // Email de modificacion (fire-and-forget)
     const repoUsuario = AppDataSource.getRepository('Usuario');
     const repoSede = AppDataSource.getRepository('Sede');
     await Promise.all([
@@ -237,7 +233,6 @@ const actualizarReserva = async (req, res) => {
   }
 };
 
-// DELETE /reservas/:id
 const cancelarReserva = async (req, res) => {
   try {
     const { id } = req.params;
@@ -245,7 +240,6 @@ const cancelarReserva = async (req, res) => {
     const reserva = await reservasService.cancelarReserva(parseInt(id, 10), esAdmin);
     emitirEventoReserva('reserva:cancelada', reserva);
 
-    // Email de cancelacion (fire-and-forget)
     const repoUsuario = AppDataSource.getRepository('Usuario');
     const repoSede = AppDataSource.getRepository('Sede');
     await Promise.all([
@@ -266,7 +260,18 @@ const cancelarReserva = async (req, res) => {
 };
 
 module.exports = {
-  crearReserva, obtenerReservas, obtenerHorariosOcupados, obtenerDiasOcupados, suspenderReservasVehiculo,
-  obtenerTiposClase, obtenerSedes, obtenerEstudiantes, obtenerInstructores, obtenerVehiculos,
-  obtenerReservaPorId, actualizarReserva, cancelarReserva,
+  crearReserva,
+  obtenerReservas,
+  obtenerHorariosOcupados,
+  obtenerDiasOcupados,
+  suspenderReservasVehiculo,
+  obtenerTiposClase,
+  obtenerSedes,
+  obtenerEstudiantes,
+  obtenerInstructores,
+  obtenerVehiculos,
+  obtenerReservaPorId,
+  actualizarReserva,
+  cancelarReserva,
 };
+

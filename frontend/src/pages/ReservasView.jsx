@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { getHorariosOcupados, crearReserva, actualizarReserva, getReservaById } from '../service/reservas.Service';
+import { getHorariosOcupados, crearReserva, actualizarReserva, getReservaById, getTiposClase } from '../service/reservas.Service';
 import { useSocket } from '../hooks/useSocket';
 
 import SelectorRecursos from '../components/SelectorRecursos';
@@ -13,25 +13,20 @@ import ReservasList from '../components/ReservasList';
 import '../App.css';
 import './ReservasView.css';
 
-export default function ReservasView({ user }) {
+export default function ReservasView({ user, sedeActiva }) {
   const ESTADO_INICIAL = {
     sedeId: user.rol === 'estudiante' ? user.sedeId : null,
     estudianteId: user.rol === 'estudiante' ? user.estudianteId : null,
     instructorId: null,
     vehiculoId: null,
   };
-  // Tab activa: 'nueva' | 'lista'
   const [tab, setTab] = useState('nueva');
-
-  // Modo edición: si editandoId !== null estamos actualizando una reserva
   const [editandoId, setEditandoId] = useState(null);
-
-  // Formulario
   const [selecciones, setSelecciones] = useState(ESTADO_INICIAL);
   const [fecha, setFecha] = useState(null);
   const [hora, setHora] = useState(null);
   const [tipoClaseId, setTipoClaseId] = useState(null);
-
+  const [tiposClase, setTiposClase] = useState([]);
   const [horariosOcupados, setHorariosOcupados] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -40,7 +35,20 @@ export default function ReservasView({ user }) {
 
   const { socket } = useSocket(selecciones.sedeId);
 
-  // Cargar disponibilidad cuando cambian fecha o recursos
+  // Cargar tipos de clase
+  useEffect(() => {
+    getTiposClase().then(data => setTiposClase(data)).catch(console.error);
+  }, []);
+
+  // Determinar si el tipo seleccionado requiere vehículo (basado en el nombre)
+  const requiereVehiculo = (tipoId) => {
+    const tipo = tiposClase.find(t => t.id === tipoId);
+    if (!tipo) return true;
+    const nombreLower = tipo.nombre.toLowerCase();
+    const esTeorica = nombreLower.includes('teór') || nombreLower.includes('teor');
+    return !esTeorica;
+  };
+
   useEffect(() => {
     if (!fecha || !selecciones.sedeId) return;
     const fetchOcupados = async () => {
@@ -58,7 +66,6 @@ export default function ReservasView({ user }) {
     fetchOcupados();
   }, [fecha, selecciones]);
 
-  // WebSocket: actualizar disponibilidad en tiempo real
   useEffect(() => {
     if (!socket) return;
     const actualizar = () => {
@@ -82,27 +89,25 @@ export default function ReservasView({ user }) {
     };
   }, [socket, fecha, selecciones]);
 
-  // Prellenar formulario en modo edicion
   const iniciarEdicion = async (reserva) => {
     try {
       const data = await getReservaById(reserva.id);
       setEditandoId(data.id);
       setSelecciones({
-        sedeId:       data.sede_id,
+        sedeId: data.sede_id,
         estudianteId: data.estudiante_id,
         instructorId: data.instructor_id,
-        vehiculoId:   data.vehiculo_id,
+        vehiculoId: data.vehiculo_id,
       });
       setTipoClaseId(data.tipo_clase_id);
       setFecha(new Date(data.fecha_inicio));
-      // Prellenar hora (usar hora local, no UTC)
       const fi = new Date(data.fecha_inicio);
       const ff = new Date(data.fecha_fin);
       const pad = (n) => String(n).padStart(2, '0');
       setHora({
         id: `${pad(fi.getHours())}:${pad(fi.getMinutes())}`,
         horaInicio: `${pad(fi.getHours())}:${pad(fi.getMinutes())}`,
-        horaFin:    `${pad(ff.getHours())}:${pad(ff.getMinutes())}`,
+        horaFin: `${pad(ff.getHours())}:${pad(ff.getMinutes())}`,
       });
       setError(null);
       setExito(false);
@@ -122,25 +127,29 @@ export default function ReservasView({ user }) {
     setExito(false);
   };
 
-  // Confirmar (crear o actualizar reserva)
   const handleConfirmar = async () => {
     setIsLoading(true);
     setError(null);
     const dateStr = format(fecha, 'yyyy-MM-dd');
     const fechaInicio = `${dateStr}T${hora.horaInicio}:00`;
-    const fechaFin    = `${dateStr}T${hora.horaFin}:00`;
+    const fechaFin = `${dateStr}T${hora.horaFin}:00`;
 
     try {
       const payload = {
         estudianteId: selecciones.estudianteId,
         instructorId: selecciones.instructorId,
-        sedeId:       selecciones.sedeId,
+        sedeId: selecciones.sedeId,
         tipoClaseId,
         fechaInicio,
         fechaFin,
       };
-      // Solo incluir vehiculoId si la clase lo requiere
-      if (selecciones.vehiculoId) payload.vehiculoId = selecciones.vehiculoId;
+      // Si el tipo requiere vehículo, debe tenerlo; si no, se fuerza null
+      if (requiereVehiculo(tipoClaseId)) {
+        if (!selecciones.vehiculoId) throw new Error('Debe seleccionar un vehículo para este tipo de clase');
+        payload.vehiculoId = selecciones.vehiculoId;
+      } else {
+        payload.vehiculoId = null;
+      }
 
       if (editandoId) {
         await actualizarReserva(editandoId, payload, user.rol);
@@ -159,112 +168,39 @@ export default function ReservasView({ user }) {
 
   return (
     <div className="rv-wrapper">
-      {/* Header */}
       <div className="rv-header">
         <div>
-          <h2 className="rv-title">
-            {editandoId ? `Editando reserva #${editandoId}` : 'Agenda de Clases'}
-          </h2>
-          <p className="rv-subtitle">
-            {editandoId
-              ? 'Modifica los datos de la reserva y confirma los cambios.'
-              : 'Crea y gestiona las reservas de clases de conducción.'}
-          </p>
+          <h2 className="rv-title">{editandoId ? `Editando reserva #${editandoId}` : 'Agenda de Clases'}</h2>
+          <p className="rv-subtitle">{editandoId ? 'Modifica los datos de la reserva y confirma los cambios.' : 'Crea y gestiona las reservas de clases de conducción.'}</p>
         </div>
       </div>
-
-      {/* Tabs */}
       {!editandoId && (
         <div className="rv-tabs">
-          <button
-            className={`rv-tab${tab === 'nueva' ? ' rv-tab-active' : ''}`}
-            onClick={() => setTab('nueva')}
-          >
-            Nueva reserva
-          </button>
-          <button
-            className={`rv-tab${tab === 'lista' ? ' rv-tab-active' : ''}`}
-            onClick={() => setTab('lista')}
-          >
-            Ver reservas
-          </button>
+          <button className={`rv-tab${tab === 'nueva' ? ' rv-tab-active' : ''}`} onClick={() => setTab('nueva')}>Nueva reserva</button>
+          <button className={`rv-tab${tab === 'lista' ? ' rv-tab-active' : ''}`} onClick={() => setTab('lista')}>Ver reservas</button>
         </div>
       )}
-
-      {/* Tab: lista de reservas */}
       {tab === 'lista' && !editandoId && (
-        <ReservasList
-          rol={user.rol}
-          estudianteId={user.estudianteId}
-          onEditar={iniciarEdicion}
-        />
+        <ReservasList rol={user.rol} estudianteId={user.estudianteId} onEditar={iniciarEdicion} sedeActiva={sedeActiva} />
       )}
-
-      {/* Tab: formulario nueva / edicion */}
       {(tab === 'nueva' || editandoId) && (
         <div className="rv-form">
           {editandoId && (
             <div className="rv-edit-banner">
-              Editando reserva #{editandoId} —
-              <button className="rv-edit-cancel-link" onClick={cancelarEdicion}>
-                Cancelar edición
-              </button>
+              Editando reserva #{editandoId} — <button className="rv-edit-cancel-link" onClick={cancelarEdicion}>Cancelar edición</button>
             </div>
           )}
-
-          <SelectorTipoClase
-            tipoSeleccionado={tipoClaseId}
-            onSelect={(id) => {
-              setTipoClaseId(id);
-              setExito(false);
-              // Si elige clase teorica, limpiar vehiculo
-              if (id === 1) {
-                setSelecciones(prev => ({ ...prev, vehiculoId: null }));
-              }
-            }}
-          />
-
+          <SelectorTipoClase tipoSeleccionado={tipoClaseId} onSelect={(id) => { setTipoClaseId(id); setExito(false); }} />
           <SelectorRecursos
             selecciones={selecciones}
             onSelect={(nuevas) => { setSelecciones(nuevas); setExito(false); }}
-            requiereVehiculo={tipoClaseId !== 1}
+            requiereVehiculo={tipoClaseId ? requiereVehiculo(tipoClaseId) : true}
             user={user}
           />
-
           <div className="rv-calendar-row">
-            <Calendario
-              fechaSeleccionada={fecha}
-              selecciones={selecciones}
-              onSelectFecha={(f) => { setFecha(f); setHora(null); setExito(false); setError(null); }}
-            />
-            <BloqueHorarios
-              fechaSeleccionada={fecha}
-              horariosOcupados={horariosOcupados}
-              horaSeleccionada={hora}
-              onSelectHora={(h) => {
-                setHora(h);
-                setIdempotencyKey(
-                  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-                    const r = (Math.random() * 16) | 0;
-                    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-                  })
-                );
-                setExito(false);
-                setError(null);
-              }}
-            />
-            <PanelDetalles
-              selecciones={selecciones}
-              tipoClaseId={tipoClaseId}
-              fecha={fecha}
-              hora={hora}
-              isLoading={isLoading}
-              error={error}
-              exito={exito}
-              onConfirmar={handleConfirmar}
-              modoEdicion={!!editandoId}
-              requiereVehiculo={tipoClaseId !== 1}
-            />
+            <Calendario fechaSeleccionada={fecha} selecciones={selecciones} onSelectFecha={(f) => { setFecha(f); setHora(null); setExito(false); setError(null); }} />
+            <BloqueHorarios fechaSeleccionada={fecha} horariosOcupados={horariosOcupados} horaSeleccionada={hora} onSelectHora={(h) => { setHora(h); setIdempotencyKey(crypto.randomUUID?.() || Math.random().toString()); setExito(false); setError(null); }} />
+            <PanelDetalles selecciones={selecciones} tipoClaseId={tipoClaseId} fecha={fecha} hora={hora} isLoading={isLoading} error={error} exito={exito} onConfirmar={handleConfirmar} modoEdicion={!!editandoId} requiereVehiculo={tipoClaseId ? requiereVehiculo(tipoClaseId) : true} />
           </div>
         </div>
       )}

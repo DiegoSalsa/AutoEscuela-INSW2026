@@ -6,11 +6,13 @@ const reservasRoutes = require('./reservas.Routes');
 const estudiantesRoutes = require('./estudiantes.Routes');
 const demoRoutes = require('./demo.Routes');
 const vehiculosRoutes = require('./vehiculos.Routes');
+const instructorRoutes = require('./instructor.Routes');
 
 router.use('/dashboard', dashboardRoutes);
 router.use('/reservas', reservasRoutes);
 router.use('/estudiantes', estudiantesRoutes);
 router.use('/demo', demoRoutes);
 router.use('/vehiculos', vehiculosRoutes);
+router.use('/instructor', instructorRoutes);
 
 module.exports = router;

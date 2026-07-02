@@ -1,5 +1,4 @@
 // data-source.js — Configuracion de conexion a PostgreSQL con TypeORM
-// Las entidades se definen en /entity (un archivo por entidad)
 const { DataSource } = require('typeorm');
 require('dotenv').config();
 

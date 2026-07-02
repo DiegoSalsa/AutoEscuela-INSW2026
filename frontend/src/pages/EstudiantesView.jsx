@@ -5,7 +5,7 @@ import { buscarEstudiantes } from '../service/estudiantes.Service.js';
 const PATRON_TIPOS_CLASE = ['B', 'B', 'A', 'B', 'C'];
 
 function resolverTipoClase(estudiante) {
-  const valor = estudiante.tipo_clase || estudiante.tipoClase || estudiante.tipo_licencia || estudiante.licencia;
+  const valor = estudiante.tipo_clase || estudiante.tipoClase || estudiante.licencia;
   const normalizado = String(valor || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')

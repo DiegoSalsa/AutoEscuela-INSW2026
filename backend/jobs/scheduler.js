@@ -73,18 +73,21 @@ const iniciarScheduler = () => {
     }
   });
 
-  // Cada 10 min: enviar email de recordatorio 1 hora antes de la clase
-  cron.schedule('*/10 * * * *', async () => {
+  // Cada 30 min: enviar email de recordatorio 1 hora antes de la clase
+  cron.schedule('*/30 * * * *', async () => {
     try {
       const repo = AppDataSource.getRepository('Reserva');
       const reservas = await repo.createQueryBuilder('r')
         .innerJoin('usuarios', 'e', 'r.estudiante_id = e.id')
         .innerJoin('sedes', 's', 'r.sede_id = s.id')
+        .leftJoin('tipos_clase', 'tc', 'r.tipo_clase_id = tc.id')
         .select([
           'r.*',
           'e.email AS estudiante_email',
           's.nombre AS sede_nombre',
           's.direccion AS sede_direccion',
+          'tc.nombre AS tipo_clase_nombre',
+          'tc.color AS tipo_clase_color',
         ])
         .where("r.estado = 'confirmada'")
         .andWhere("r.fecha_inicio BETWEEN NOW() AND NOW() + INTERVAL '1 hour'")
@@ -93,7 +96,8 @@ const iniciarScheduler = () => {
       for (const r of reservas) {
         if (r.estudiante_email) {
           const sede = { nombre: r.sede_nombre, direccion: r.sede_direccion };
-          enviarRecordatorio(r, r.estudiante_email, sede);
+          const tipoClase = { nombre: r.tipo_clase_nombre || 'Clase General', color: r.tipo_clase_color || '#002366' };
+          enviarRecordatorio(r, r.estudiante_email, sede, tipoClase);
         }
       }
       if (reservas.length > 0) {

@@ -71,7 +71,19 @@ const menuItems = [
       </svg>
     ),
   },
-
+  {
+    id: 'portal_instructor',
+    label: 'Mi Portal',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+    ),
+  },
 ];
 
 export default function Sidebar({ vistaActual, onSetVista, user, onLogout }) {
@@ -80,15 +92,26 @@ export default function Sidebar({ vistaActual, onSetVista, user, onLogout }) {
     if (user?.rol === 'estudiante') {
       return item.id === 'agenda';
     }
-    return true; // Admin ve todo
+    if (user?.rol === 'instructor') {
+      return item.id === 'portal_instructor';
+    }
+    // Admin y Recepcionista ven todo
+    return true;
   });
+
+  const rolLabel = {
+    admin: 'Dashboard Analytics',
+    recepcionista: 'Panel Operativo',
+    instructor: 'Portal del Instructor',
+    estudiante: 'Portal de Estudiantes',
+  };
 
   return (
     <aside className="w-64 bg-primary text-white h-full flex flex-col font-body">
       <div className="p-6">
         <h1 className="text-2xl font-bold font-headline tracking-wider text-white">AUTODRIVE</h1>
         <p className="text-sm text-neutral/70 mt-1">
-          {user?.rol === 'admin' ? 'Dashboard Analytics' : 'Portal de Estudiantes'}
+          {rolLabel[user?.rol] || 'Dashboard Analytics'}
         </p>
       </div>
 

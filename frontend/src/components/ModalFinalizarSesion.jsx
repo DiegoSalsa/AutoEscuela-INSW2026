@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { X, CheckCircle, Gauge } from 'lucide-react';
 
+const API_URL = (import.meta.env.VITE_BASE_URL || '').replace(/\/$/, '');
+const API_BASE = API_URL ? `${API_URL}/api` : '/api';
+
 const ModalFinalizarSesion = ({ vehiculoId, patente, abierto, alCerrar, alCompletar }) => {
   const [kmRecorridos, setKmRecorridos] = useState('');
   const [cargando, setCargando] = useState(false);
@@ -13,7 +16,7 @@ const ModalFinalizarSesion = ({ vehiculoId, patente, abierto, alCerrar, alComple
 
     try {
       // Llamada al endpoint que definimos en el backend[cite: 3]
-      const respuesta = await fetch(`/api/vehiculos/${vehiculoId}/finalizar-sesion`, {
+      const respuesta = await fetch(`${API_BASE}/vehiculos/${vehiculoId}/finalizar-sesion`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ kmRecorridos: parseInt(kmRecorridos) }),

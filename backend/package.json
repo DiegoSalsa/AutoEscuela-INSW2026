@@ -11,6 +11,7 @@
     "@faker-js/faker": "^10.4.0",
     "cloudinary": "^2.10.0",
     "cors": "^2.8.5",
+    "date-fns-tz": "^3.2.0",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
     "joi": "^18.1.2",

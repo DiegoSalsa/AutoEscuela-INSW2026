@@ -13,7 +13,6 @@ function obtenerLicencia(instructor) {
   return instructor.tipo_clase
     ? `Clase ${String(instructor.tipo_clase).toUpperCase()}`
     : instructor.especialidad
-    || instructor.tipo_licencia
     || instructor.tipoLicencia
     || instructor.licencia
     || instructor.clase

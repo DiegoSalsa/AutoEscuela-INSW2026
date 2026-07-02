@@ -2,12 +2,10 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import './BloqueHorarios.css';
 
-// Generar bloques de clase de 45 minutos. De esta forma quedan 15 minutos libres 
-// al final de cada hora para preparación/limpieza del vehículo antes de la siguiente.
 const generarBloquesDelDia = () => {
   const bloques = [];
   for (let i = 8; i < 20; i++) {
-    if (i === 13) continue; // Saltar colación
+    if (i === 13) continue;
     const horaStr = i.toString().padStart(2, '0');
     bloques.push({
       id: `${horaStr}:00`,
@@ -21,36 +19,27 @@ const generarBloquesDelDia = () => {
 export default function BloqueHorarios({ fechaSeleccionada, horariosOcupados, horaSeleccionada, onSelectHora }) {
   const bloquesPosibles = generarBloquesDelDia();
 
-  // Función para determinar si un bloque está ocupado
-  // Ocupado significa que la hora de inicio de este bloque cae dentro de una reserva
-  // o que es exactamente igual. Para simplificar (al ser bloques exactos de 1h),
-  // comparamos solo la horaInicio.
   const isBloqueOcupado = (bloque) => {
     if (!fechaSeleccionada) return true;
 
-    // Si la fecha seleccionada es hoy, bloquear horas pasadas (zona horaria Chile)
-    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' }));
-    if (fechaSeleccionada.toDateString() === now.toDateString()) {
+
+    // Si la fecha es hoy, bloquear horas pasadas (hora local del navegador)
+    const now = new Date();
+    const hoyStr = format(now, 'yyyy-MM-dd');
+    const fechaStr = format(fechaSeleccionada, 'yyyy-MM-dd');
+    if (fechaStr === hoyStr) {
       const [horas] = bloque.horaInicio.split(':');
       if (parseInt(horas, 10) <= now.getHours()) return true;
     }
 
     return horariosOcupados.some(res => {
-      let reservaHoraStr;
-      // si el backend envia un string con T y Z,
-      // la hora real está en la componente utc del objeto date
-      // para que no se desfase por la zona horaria del navegador
-      if (typeof res.inicio === 'string' && res.inicio.includes('T')) {
-        const reservaDate = new Date(res.inicio);
-        const reservaHour = reservaDate.getUTCHours().toString().padStart(2, '0');
-        const reservaMin = reservaDate.getUTCMinutes().toString().padStart(2, '0');
-        reservaHoraStr = `${reservaHour}:${reservaMin}`;
-      } else {
-        // por si acaso el formato es distinto
-        const reservaDate = new Date(res.fecha_inicio || res.inicio);
-        const reservaHour = reservaDate.getUTCHours().toString().padStart(2, '0');
-        const reservaMin = reservaDate.getUTCMinutes().toString().padStart(2, '0');
-        reservaHoraStr = `${reservaHour}:${reservaMin}`;
+      // El backend puede devolver fecha en UTC o local; convertimos a Date y extraemos hora local
+      let reservaHoraStr = '';
+      const fechaReserva = new Date(res.fecha_inicio || res.inicio);
+      if (!isNaN(fechaReserva.getTime())) {
+        const horas = fechaReserva.getHours().toString().padStart(2, '0');
+        const minutos = fechaReserva.getMinutes().toString().padStart(2, '0');
+        reservaHoraStr = `${horas}:${minutos}`;
       }
       return reservaHoraStr === bloque.horaInicio;
     });
@@ -73,7 +62,6 @@ export default function BloqueHorarios({ fechaSeleccionada, horariosOcupados, ho
         {bloquesPosibles.map(bloque => {
           const ocupado = isBloqueOcupado(bloque);
           const seleccionado = horaSeleccionada?.id === bloque.id;
-
           return (
             <button
               key={bloque.id}

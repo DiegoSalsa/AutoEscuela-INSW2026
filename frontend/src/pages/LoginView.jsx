@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { getEstudiantes, getSedes } from '../service/reservas.Service';
+import { getEstudiantes, getInstructores, getSedes } from '../service/reservas.Service';
 import './LoginView.css';
 
 export default function LoginView({ onLogin }) {
   const [sedes, setSedes] = useState([]);
   const [estudiantes, setEstudiantes] = useState([]);
+  const [instructores, setInstructores] = useState([]);
 
-  const [rol, setRol] = useState('');
+  const [rol, setRol] = useState(''); // 'admin', 'recepcionista', 'instructor' o 'estudiante'
   const [sedeId, setSedeId] = useState('');
   const [estudianteId, setEstudianteId] = useState('');
+  const [instructorId, setInstructorId] = useState('');
 
   useEffect(() => {
     const fetchSedes = async () => {
@@ -22,40 +24,62 @@ export default function LoginView({ onLogin }) {
     fetchSedes();
   }, []);
 
+  // 2. cargar estudiantes o instructores cuando cambia la sede
   useEffect(() => {
-    if (!sedeId || rol !== 'estudiante') {
+    if (!sedeId) {
       setEstudiantes([]);
+      setInstructores([]);
       return;
     }
-
-    const fetchEstudiantes = async () => {
-      try {
-        const data = await getEstudiantes(sedeId);
+    if (rol === 'estudiante') {
+      getEstudiantes(sedeId).then(data => {
         setEstudiantes(data);
         if (data.length > 0) setEstudianteId(data[0].id.toString());
-      } catch (error) {
-        console.error('Error al cargar estudiantes', error);
-      }
-    };
-    fetchEstudiantes();
+      }).catch(err => console.error(err));
+    } else if (rol === 'instructor') {
+      getInstructores(sedeId).then(data => {
+        setInstructores(data);
+        if (data.length > 0) setInstructorId(data[0].id.toString());
+      }).catch(err => console.error(err));
+    }
   }, [sedeId, rol]);
 
   const handleLoginAdmin = () => {
     onLogin({ id: 'admin', label: 'Administrador', rol: 'admin', estudianteId: null });
   };
 
+  const handleLoginRecepcionista = () => {
+    onLogin({ id: 'recepcionista', label: 'Recepcionista', rol: 'recepcionista', estudianteId: null });
+  };
+
+  const handleLoginInstructor = () => {
+    if (!instructorId) return;
+    const inst = instructores.find(i => i.id.toString() === instructorId);
+    if (inst) {
+      onLogin({
+        id: 'instructor',
+        label: inst.nombre || 'Instructor',
+        rol: 'instructor',
+        instructorId: inst.id,
+        sedeId: parseInt(sedeId, 10),
+        tipo_clase: inst.tipo_clase || inst.especialidad,
+      });
+    }
+  };
+
   const handleLoginEstudiante = () => {
     if (!estudianteId) return;
-    const estudiante = estudiantes.find((e) => e.id.toString() === estudianteId);
-    if (!estudiante) return;
-
-    onLogin({
-      id: 'estudiante',
-      label: estudiante.nombre || 'Estudiante',
-      rol: 'estudiante',
-      estudianteId: estudiante.id,
-      sedeId: parseInt(sedeId, 10),
-    });
+    const est = estudiantes.find(e => e.id.toString() === estudianteId);
+    if (est) {
+      onLogin({
+        id: 'estudiante',
+        label: est.nombre || 'Estudiante',
+        rol: 'estudiante',
+        estudianteId: est.id,
+        sedeId: parseInt(sedeId, 10),
+        tipo_clase: est.tipo_clase,
+      });
+    }
   };
 
   return (
@@ -68,6 +92,12 @@ export default function LoginView({ onLogin }) {
           <div className="login-simple-options">
             <button className="login-simple-btn btn-admin" onClick={() => setRol('admin')}>
               Soy Administrador
+            </button>
+            <button className="login-simple-btn btn-recepcionista" onClick={() => setRol('recepcionista')}>
+              Soy Recepcionista
+            </button>
+            <button className="login-simple-btn btn-instructor" onClick={() => setRol('instructor')}>
+              Soy Instructor
             </button>
             <button className="login-simple-btn btn-student" onClick={() => setRol('estudiante')}>
               Soy Estudiante
@@ -84,13 +114,20 @@ export default function LoginView({ onLogin }) {
                   Entrar como Admin
                 </button>
               </div>
+            ) : rol === 'recepcionista' ? (
+              <div className="form-group">
+                <p className="info-text">Ingreso como Recepcionista. Tendrás acceso a la gestión operativa del sistema.</p>
+                <button className="login-simple-btn btn-recepcionista" onClick={handleLoginRecepcionista}>
+                  Entrar como Recepcionista
+                </button>
+              </div>
             ) : (
               <div className="form-group">
                 <label>1. Selecciona tu sede:</label>
                 <select
                   className="login-simple-select"
                   value={sedeId}
-                  onChange={(e) => { setSedeId(e.target.value); setEstudianteId(''); }}
+                  onChange={e => { setSedeId(e.target.value); setEstudianteId(''); setInstructorId(''); }}
                 >
                   <option value="">-- Elige una sede --</option>
                   {sedes.map((s) => (
@@ -98,7 +135,7 @@ export default function LoginView({ onLogin }) {
                   ))}
                 </select>
 
-                {sedeId && (
+                {sedeId && rol === 'estudiante' && (
                   <>
                     <label>2. Selecciona tu nombre:</label>
                     <select
@@ -116,6 +153,30 @@ export default function LoginView({ onLogin }) {
                       className="login-simple-btn btn-student"
                       onClick={handleLoginEstudiante}
                       disabled={!estudianteId}
+                    >
+                      Ingresar
+                    </button>
+                  </>
+                )}
+
+                {sedeId && rol === 'instructor' && (
+                  <>
+                    <label>2. Selecciona tu Nombre (Instructor):</label>
+                    <select 
+                      className="login-simple-select"
+                      value={instructorId}
+                      onChange={e => setInstructorId(e.target.value)}
+                    >
+                      {instructores.length === 0 && <option value="">No hay instructores en esta sede</option>}
+                      {instructores.map(i => (
+                        <option key={i.id} value={i.id}>{i.nombre} ({i.especialidad || 'General'})</option>
+                      ))}
+                    </select>
+
+                    <button 
+                      className="login-simple-btn btn-instructor" 
+                      onClick={handleLoginInstructor}
+                      disabled={!instructorId}
                     >
                       Ingresar
                     </button>
