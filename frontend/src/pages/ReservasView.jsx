@@ -3,6 +3,14 @@ import { format } from 'date-fns';
 import { getHorariosOcupados, crearReserva, actualizarReserva, getReservaById, getTiposClase } from '../service/reservas.Service';
 import { useSocket } from '../hooks/useSocket';
 
+// Generador de UUID v4 compatible con HTTP (crypto.randomUUID solo funciona en HTTPS)
+function generarUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (crypto.getRandomValues(new Uint8Array(1))[0] & 15) >> (c === 'x' ? 0 : 2);
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
 import SelectorRecursos from '../components/SelectorRecursos';
 import SelectorTipoClase from '../components/SelectorTipoClase';
 import Calendario from '../components/Calendario';
@@ -199,7 +207,7 @@ export default function ReservasView({ user, sedeActiva }) {
           />
           <div className="rv-calendar-row">
             <Calendario fechaSeleccionada={fecha} selecciones={selecciones} onSelectFecha={(f) => { setFecha(f); setHora(null); setExito(false); setError(null); }} />
-            <BloqueHorarios fechaSeleccionada={fecha} horariosOcupados={horariosOcupados} horaSeleccionada={hora} onSelectHora={(h) => { setHora(h); setIdempotencyKey(crypto.randomUUID?.() || Math.random().toString()); setExito(false); setError(null); }} />
+            <BloqueHorarios fechaSeleccionada={fecha} horariosOcupados={horariosOcupados} horaSeleccionada={hora} onSelectHora={(h) => { setHora(h); setIdempotencyKey(generarUUID()); setExito(false); setError(null); }} />
             <PanelDetalles selecciones={selecciones} tipoClaseId={tipoClaseId} fecha={fecha} hora={hora} isLoading={isLoading} error={error} exito={exito} onConfirmar={handleConfirmar} modoEdicion={!!editandoId} requiereVehiculo={tipoClaseId ? requiereVehiculo(tipoClaseId) : true} />
           </div>
         </div>
