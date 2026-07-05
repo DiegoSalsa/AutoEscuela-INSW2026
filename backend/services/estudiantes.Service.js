@@ -1,4 +1,5 @@
 const { AppDataSource, Usuario, ModuloTeorico, EstudianteModuloProgreso } = require('../db/data-source');
+const { calcularNota } = require('./instructor.Service');
 
 // horas por defecto 
 const HORAS_REQUERIDAS = 40;
@@ -215,6 +216,26 @@ async function buscarEstudiantes(sedeId, q) {
 
     const resultados = await query.getRawMany();
 
+    const repoEval = AppDataSource.getRepository('EvaluacionInstructor');
+    for (const row of resultados) {
+      const evals = await repoEval.find({ where: { estudiante_id: row.id } });
+      if (evals.length > 0) {
+        const sumaNotas = evals.reduce((acc, ev) => {
+          const pTotal = ev.puntaje_total ?? (ev.control_volante + ev.uso_espejos + ev.respeto_senalizacion + ev.maniobras_estacionamiento + ev.confianza_general);
+          const notaEv = ev.nota ?? calcularNota(pTotal);
+          return acc + notaEv;
+        }, 0);
+        row.evaluacion_promedio = parseFloat((sumaNotas / evals.length).toFixed(1));
+        const ultimaEval = evals[evals.length - 1];
+        const pUltimo = ultimaEval.puntaje_total ?? (ultimaEval.control_volante + ultimaEval.uso_espejos + ultimaEval.respeto_senalizacion + ultimaEval.maniobras_estacionamiento + ultimaEval.confianza_general);
+        const notaUltima = ultimaEval.nota ?? calcularNota(pUltimo);
+        row.es_apto = ultimaEval.es_apto ?? (notaUltima >= 4.0);
+      } else {
+        row.evaluacion_promedio = null;
+        row.es_apto = null;
+      }
+    }
+
     return resultados.map(row => ({
       id: row.id,
       nombre: row.nombre,
@@ -228,6 +249,8 @@ async function buscarEstudiantes(sedeId, q) {
       },
       totalClases: parseInt(row.total_clases, 10),
       horasTotales: parseFloat(parseFloat(row.horas_totales).toFixed(2)),
+      evaluacion_promedio: row.evaluacion_promedio,
+      es_apto: row.es_apto,
     }));
 
   } catch (error) {

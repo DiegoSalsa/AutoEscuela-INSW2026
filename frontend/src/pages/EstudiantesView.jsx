@@ -39,9 +39,24 @@ function StudentCard({ estudiante }) {
       <div className="min-w-0">
         <h3 className="font-semibold text-gray-900 truncate">{estudiante.nombre}</h3>
         <p className="text-sm text-gray-400">{estudiante.email || 'Sin correo registrado'}</p>
-        <span className="inline-flex mt-2 items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
-          Clase {tipoClase}
-        </span>
+        <div className="flex flex-wrap items-center gap-2 mt-2">
+          <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
+            Clase {tipoClase}
+          </span>
+          {estudiante.evaluacion_promedio !== null && estudiante.evaluacion_promedio !== undefined ? (
+            <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-black uppercase tracking-wide ${
+              estudiante.es_apto
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                : 'bg-amber-100 text-amber-800 border border-amber-300'
+            }`}>
+              {estudiante.es_apto ? 'APTO PARA EXAMEN' : 'EN PREPARACIÓN'}
+            </span>
+          ) : (
+            <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-500">
+              Sin evaluar
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

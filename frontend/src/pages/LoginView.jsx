@@ -162,7 +162,7 @@ export default function LoginView({ onLogin }) {
                 {sedeId && rol === 'instructor' && (
                   <>
                     <label>2. Selecciona tu Nombre (Instructor):</label>
-                    <select 
+                    <select
                       className="login-simple-select"
                       value={instructorId}
                       onChange={e => setInstructorId(e.target.value)}
@@ -173,8 +173,8 @@ export default function LoginView({ onLogin }) {
                       ))}
                     </select>
 
-                    <button 
-                      className="login-simple-btn btn-instructor" 
+                    <button
+                      className="login-simple-btn btn-instructor"
                       onClick={handleLoginInstructor}
                       disabled={!instructorId}
                     >

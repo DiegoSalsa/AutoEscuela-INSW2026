@@ -115,22 +115,26 @@ export default function InstructorPortalView({ user }) {
     }
   };
 
-  const StarInput = ({ label, name, value, onChange }) => (
-    <div className="flex items-center justify-between py-2 border-b border-gray-100">
-      <span className="font-medium text-gray-700">{label}</span>
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
+  const PuntajeInput = ({ label, name, value, onChange }) => (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-2.5 border-b border-gray-100 gap-2">
+      <span className="font-medium text-gray-700 text-sm">{label}</span>
+      <div className="flex items-center gap-1 self-end sm:self-auto">
+        {[0, 1, 2, 3, 4, 5].map((pts) => (
           <button
-            key={star}
+            key={pts}
             type="button"
-            onClick={() => onChange({ ...formEval, [name]: star })}
-            className={`text-2xl transition-transform hover:scale-125 focus:outline-none ${
-              star <= value ? 'text-amber-400' : 'text-gray-200'
+            onClick={() => onChange({ ...formEval, [name]: pts })}
+            className={`w-8 h-8 rounded-lg font-bold text-xs transition-all flex items-center justify-center ${
+              pts === value
+                ? 'bg-primary text-white shadow-md scale-105 ring-2 ring-primary/30'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
             }`}
+            title={`${pts} puntos`}
           >
-            ★
+            {pts}
           </button>
         ))}
+        <span className="text-xs font-bold text-gray-400 ml-1">pts</span>
       </div>
     </div>
   );
@@ -146,48 +150,49 @@ export default function InstructorPortalView({ user }) {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header del Portal */}
-      <div className="bg-primary rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4" style={{ backgroundColor: '#002366' }}>
         <div>
-          <div className="inline-block px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-semibold uppercase tracking-wider mb-2">
+          <div className="inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider mb-2 border border-white/20" style={{ backgroundColor: '#001744', color: '#ffffff' }}>
             Portal del Instructor
           </div>
-          <h1 className="text-3xl font-extrabold">{user?.label || 'Profesor'}</h1>
+          <h1 className="text-3xl font-extrabold" style={{ color: '#ffffff' }}>{user?.label || 'Profesor'}</h1>
           {user?.rol === 'admin' ? (
             <div className="mt-2 flex items-center gap-2">
-              <span className="text-white/80 text-xs font-semibold">Licencia (Modo Admin):</span>
+              <span className="text-xs font-semibold" style={{ color: '#e2e8f0' }}>Licencia (Modo Admin):</span>
               <select
                 value={licenciaAdmin}
                 onChange={(e) => setLicenciaAdmin(e.target.value)}
-                className="bg-white/10 border border-white/30 text-white rounded px-2.5 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-white"
+                className="border rounded px-2.5 py-1 text-xs font-semibold focus:outline-none"
+                style={{ backgroundColor: '#001744', color: '#ffffff', borderColor: '#334155' }}
               >
-                <option value="todas" className="text-gray-900">Todas las licencias</option>
-                <option value="A" className="text-gray-900">Clase A</option>
-                <option value="B" className="text-gray-900">Clase B</option>
-                <option value="C" className="text-gray-900">Clase C</option>
+                <option value="todas" style={{ color: '#0f172a', backgroundColor: '#ffffff' }}>Todas las licencias</option>
+                <option value="A" style={{ color: '#0f172a', backgroundColor: '#ffffff' }}>Clase A</option>
+                <option value="B" style={{ color: '#0f172a', backgroundColor: '#ffffff' }}>Clase B</option>
+                <option value="C" style={{ color: '#0f172a', backgroundColor: '#ffffff' }}>Clase C</option>
               </select>
             </div>
           ) : (
-            <p className="text-white/80 text-sm mt-1">
-              Especialidad / Licencia: <span className="font-semibold bg-white/10 px-2 py-0.5 rounded">Clase {user?.tipo_clase || 'B'}</span>
+            <p className="text-sm mt-1" style={{ color: '#e2e8f0' }}>
+              Especialidad / Licencia: <span className="font-semibold px-2 py-0.5 rounded border border-white/20" style={{ backgroundColor: '#001744', color: '#ffffff' }}>Clase {user?.tipo_clase || 'B'}</span>
             </p>
           )}
         </div>
 
         {/* Tabs de Navegación */}
-        <div className="flex bg-white/10 p-1 rounded-xl backdrop-blur-md border border-white/10">
+        <div className="flex p-1.5 rounded-xl border border-white/30 gap-2" style={{ backgroundColor: '#001744' }}>
           <button
+            type="button"
             onClick={() => setTab('calendario')}
-            className={`px-5 py-2 rounded-lg font-medium text-sm transition-all ${
-              tab === 'calendario' ? 'bg-white text-primary shadow-md font-bold' : 'text-white/80 hover:text-white'
-            }`}
+            className="px-5 py-2.5 rounded-lg font-bold text-sm transition-all"
+            style={tab === 'calendario' ? { backgroundColor: '#ffffff', color: '#002366', boxShadow: '0 2px 4px rgba(0,0,0,0.15)' } : { backgroundColor: 'transparent', color: '#ffffff', opacity: 0.9 }}
           >
             Mi Agenda del Día
           </button>
           <button
+            type="button"
             onClick={() => setTab('estudiantes')}
-            className={`px-5 py-2 rounded-lg font-medium text-sm transition-all ${
-              tab === 'estudiantes' ? 'bg-white text-primary shadow-md font-bold' : 'text-white/80 hover:text-white'
-            }`}
+            className="px-5 py-2.5 rounded-lg font-bold text-sm transition-all"
+            style={tab === 'estudiantes' ? { backgroundColor: '#ffffff', color: '#002366', boxShadow: '0 2px 4px rgba(0,0,0,0.15)' } : { backgroundColor: 'transparent', color: '#ffffff', opacity: 0.9 }}
           >
             Mis Estudiantes
           </button>
@@ -195,23 +200,19 @@ export default function InstructorPortalView({ user }) {
       </div>
 
       {/* Contenido Principal */}
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      ) : tab === 'calendario' ? (
+      {tab === 'calendario' ? (
         /* SECCIÓN 1: CALENDARIO DEL DÍA */
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           {/* Controles de fecha */}
           <div className="p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <button onClick={() => cambiarFecha(-1)} className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 text-sm font-medium">
+              <button onClick={() => cambiarFecha(-1)} type="button" className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 text-sm font-medium">
                 ← Anterior
               </button>
-              <button onClick={() => setFecha(new Date().toISOString().split('T')[0])} className="px-3 py-1.5 bg-primary/5 border border-primary/20 text-primary rounded-lg hover:bg-primary/10 text-sm font-bold">
+              <button onClick={() => setFecha(new Date().toISOString().split('T')[0])} type="button" className="px-3 py-1.5 bg-primary/5 border border-primary/20 text-primary rounded-lg hover:bg-primary/10 text-sm font-bold">
                 Hoy
               </button>
-              <button onClick={() => cambiarFecha(1)} className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 text-sm font-medium">
+              <button onClick={() => cambiarFecha(1)} type="button" className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 text-sm font-medium">
                 Siguiente →
               </button>
             </div>
@@ -228,7 +229,11 @@ export default function InstructorPortalView({ user }) {
 
           {/* Lista de clases */}
           <div className="p-6">
-            {clasesAMostrar.length === 0 ? (
+            {loading ? (
+              <div className="flex justify-center items-center h-48">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+              </div>
+            ) : clasesAMostrar.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <h3 className="text-lg font-semibold text-gray-700">No tienes clases agendadas para este día</h3>
                 <p className="text-sm">Selecciona otra fecha o revisa la pestaña de tus estudiantes.</p>
@@ -286,6 +291,10 @@ export default function InstructorPortalView({ user }) {
             )}
           </div>
         </div>
+      ) : loading ? (
+        <div className="flex justify-center items-center h-64 bg-white rounded-2xl border border-gray-200">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
       ) : (
         /* SECCIÓN 2: MIS ESTUDIANTES */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -309,15 +318,27 @@ export default function InstructorPortalView({ user }) {
                   <h3 className="font-bold text-gray-900 text-lg mb-1">{est.nombre}</h3>
                   <p className="text-xs text-gray-500 mb-4">Email: {est.email}</p>
 
-                  <div className="bg-gray-50 rounded-xl p-3 flex items-center justify-between mb-4 border border-gray-100">
-                    <span className="text-xs font-medium text-gray-600">Promedio Evaluaciones:</span>
-                    <span className="font-bold text-sm flex items-center gap-1">
-                      {est.evaluacion_promedio ? (
-                        <><span className="text-amber-500">★</span> {est.evaluacion_promedio} / 5.0</>
-                      ) : (
-                        <span className="text-gray-400 font-normal">Sin evaluar</span>
-                      )}
-                    </span>
+                  <div className="bg-gray-50 rounded-xl p-3 flex flex-col gap-2 mb-4 border border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-gray-600">Nota Promedio:</span>
+                      <span className="font-bold text-sm flex items-center gap-1">
+                        {est.evaluacion_promedio ? (
+                          <span className={`px-2 py-0.5 rounded text-xs font-extrabold ${est.evaluacion_promedio >= 4.0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                            Nota {est.evaluacion_promedio} / 7.0
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 font-normal text-xs">Sin evaluar</span>
+                        )}
+                      </span>
+                    </div>
+                    {est.evaluacion_promedio && (
+                      <div className="flex items-center justify-between border-t border-gray-200 pt-1.5">
+                        <span className="text-xs font-medium text-gray-600">Estado Municipal:</span>
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${est.es_apto ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'}`}>
+                          {est.es_apto ? 'APTO PARA EXAMEN' : 'EN PREPARACIÓN'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -347,7 +368,7 @@ export default function InstructorPortalView({ user }) {
           <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl animate-fade-in">
             <div className="bg-primary p-6 text-white flex justify-between items-center">
               <div>
-                <h3 className="text-xl font-bold">Evaluación de Desempeño</h3>
+                <h3 className="text-xl font-bold text-white">Evaluación de Desempeño</h3>
                 <p className="text-xs text-white/80 mt-0.5">
                   Estudiante: <span className="font-semibold">{estudianteEval?.nombre}</span>
                 </p>
@@ -379,36 +400,69 @@ export default function InstructorPortalView({ user }) {
 
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 text-xs text-primary font-medium">
                 {formEval.es_teorica
-                  ? 'Califica de 1 a 5 estrellas el dominio de los contenidos teóricos y normativa vial.'
-                  : 'Califica de 1 a 5 estrellas cada aspecto técnico de la conducción práctica.'}
+                  ? 'Asigna de 0 a 5 puntos el dominio de los contenidos teóricos y normativa vial.'
+                  : 'Asigna de 0 a 5 puntos cada aspecto técnico de la conducción práctica para evaluar aptitud municipal.'}
               </div>
 
+              {/* Tarjeta de Resumen en Tiempo Real */}
+              {(() => {
+                const pTotal = (Number(formEval.control_volante) || 0) +
+                  (Number(formEval.uso_espejos) || 0) +
+                  (Number(formEval.respeto_senalizacion) || 0) +
+                  (Number(formEval.maniobras_estacionamiento) || 0) +
+                  (Number(formEval.confianza_general) || 0);
+                const p = Math.max(0, Math.min(25, pTotal));
+                const nota = p >= 15 ? (4.0 + 0.3 * (p - 15)).toFixed(1) : (1.0 + 0.2 * p).toFixed(1);
+                const esApto = parseFloat(nota) >= 4.0;
+                return (
+                  <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm ${esApto ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900'}`}>
+                    <div>
+                      <div className="text-[11px] font-bold uppercase tracking-wider opacity-80">Evaluación Municipal</div>
+                      <div className="text-sm font-black flex items-center gap-1.5 mt-0.5">
+                        {esApto ? 'APTO PARA RENDIR EXAMEN' : 'NO APTO (REQUIERE REFUERZO)'}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 bg-white/90 px-3 py-1.5 rounded-lg border border-black/5 shadow-inner">
+                      <div className="text-right">
+                        <div className="text-[9px] text-gray-500 font-extrabold uppercase">Puntaje</div>
+                        <div className="text-xs font-black">{pTotal} / 25 pts</div>
+                      </div>
+                      <div className="h-6 w-px bg-gray-200"></div>
+                      <div className="text-right">
+                        <div className="text-[9px] text-gray-500 font-extrabold uppercase">Nota</div>
+                        <div className={`text-base font-black ${esApto ? 'text-emerald-600' : 'text-rose-600'}`}>{nota}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="space-y-1">
-                <StarInput
+                <PuntajeInput
                   label={formEval.es_teorica ? 'Comprensión de Leyes y Normativa' : 'Control del volante y pedales'}
                   name="control_volante"
                   value={formEval.control_volante}
                   onChange={setFormEval}
                 />
-                <StarInput
+                <PuntajeInput
                   label={formEval.es_teorica ? 'Conocimiento de Señalización Vial' : 'Uso de espejos y puntos ciegos'}
                   name="uso_espejos"
                   value={formEval.uso_espejos}
                   onChange={setFormEval}
                 />
-                <StarInput
+                <PuntajeInput
                   label={formEval.es_teorica ? 'Resolución de Situaciones de Riesgo' : 'Respeto de señalización vial'}
                   name="respeto_senalizacion"
                   value={formEval.respeto_senalizacion}
                   onChange={setFormEval}
                 />
-                <StarInput
+                <PuntajeInput
                   label={formEval.es_teorica ? 'Participación y Atención en Clase' : 'Maniobras de estacionamiento'}
                   name="maniobras_estacionamiento"
                   value={formEval.maniobras_estacionamiento}
                   onChange={setFormEval}
                 />
-                <StarInput
+                <PuntajeInput
                   label={formEval.es_teorica ? 'Resultado en Test Teórico' : 'Confianza y seguridad general'}
                   name="confianza_general"
                   value={formEval.confianza_general}
@@ -473,7 +527,7 @@ export default function InstructorPortalView({ user }) {
           <div className="bg-white rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl animate-fade-in max-h-[85vh] flex flex-col">
             <div className="bg-primary p-6 text-white flex justify-between items-center">
               <div>
-                <h3 className="text-xl font-bold">Historial de Evaluaciones</h3>
+                <h3 className="text-xl font-bold text-white">Historial de Evaluaciones</h3>
                 <p className="text-xs text-white/80 mt-0.5">Alumno: <span className="font-semibold text-white">{estudianteHistorial?.nombre}</span></p>
               </div>
               <button onClick={() => setModalHistorialOpen(false)} className="text-white/80 hover:text-white text-2xl font-bold">×</button>
@@ -485,35 +539,40 @@ export default function InstructorPortalView({ user }) {
               ) : (
                 historial.map((h) => (
                   <div key={h.id} className="border border-gray-200 rounded-xl p-4 bg-gray-50 space-y-3">
-                    <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                    <div className="flex flex-wrap justify-between items-center border-b border-gray-200 pb-2 gap-2">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-gray-500">{new Date(h.fecha).toLocaleDateString('es-CL')}</span>
                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${h.es_teorica ? 'bg-purple-100 text-purple-800 border border-purple-300' : 'bg-blue-100 text-blue-800 border border-blue-300'}`}>
                           {h.es_teorica ? 'Modalidad: Teórica' : 'Modalidad: Práctica'}
                         </span>
                       </div>
-                      <span className="text-xs font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
-                        ★ Promedio: {h.promedio} / 5.0
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-extrabold bg-gray-200 text-gray-800 px-2 py-0.5 rounded">
+                          {h.puntaje_total} / 25 pts
+                        </span>
+                        <span className={`text-xs font-extrabold px-2 py-0.5 rounded ${h.nota >= 4.0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                          Nota {h.nota} / 7.0
+                        </span>
+                      </div>
                     </div>
 
                     {h.es_teorica ? (
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                        <div>Leyes: <span className="font-bold">{h.puntuaciones.control_volante}★</span></div>
-                        <div>Señales: <span className="font-bold">{h.puntuaciones.uso_espejos}★</span></div>
-                        <div>Riesgos: <span className="font-bold">{h.puntuaciones.respeto_senalizacion}★</span></div>
-                        <div>Atención: <span className="font-bold">{h.puntuaciones.maniobras_estacionamiento}★</span></div>
-                        <div>Test: <span className="font-bold">{h.puntuaciones.confianza_general}★</span></div>
-                        <div>Resultado: <span className="font-bold uppercase text-purple-700">{h.listo_examen === 'si' ? 'APROBADO' : h.listo_examen === 'casi' ? 'PENDIENTE' : 'REPROBADO'}</span></div>
+                        <div>Leyes: <span className="font-bold">{h.puntuaciones.control_volante} pts</span></div>
+                        <div>Señales: <span className="font-bold">{h.puntuaciones.uso_espejos} pts</span></div>
+                        <div>Riesgos: <span className="font-bold">{h.puntuaciones.respeto_senalizacion} pts</span></div>
+                        <div>Atención: <span className="font-bold">{h.puntuaciones.maniobras_estacionamiento} pts</span></div>
+                        <div>Test: <span className="font-bold">{h.puntuaciones.confianza_general} pts</span></div>
+                        <div>Estado: <span className={`font-extrabold uppercase ${h.es_apto ? 'text-emerald-700' : 'text-amber-700'}`}>{h.es_apto ? 'APTO MUNICIPAL' : 'NO APTO'}</span></div>
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                        <div>Volante: <span className="font-bold">{h.puntuaciones.control_volante}★</span></div>
-                        <div>Espejos: <span className="font-bold">{h.puntuaciones.uso_espejos}★</span></div>
-                        <div>Señales: <span className="font-bold">{h.puntuaciones.respeto_senalizacion}★</span></div>
-                        <div>Estacionamiento: <span className="font-bold">{h.puntuaciones.maniobras_estacionamiento}★</span></div>
-                        <div>Confianza: <span className="font-bold">{h.puntuaciones.confianza_general}★</span></div>
-                        <div>Examen: <span className="font-bold uppercase text-primary">{h.listo_examen}</span></div>
+                        <div>Volante: <span className="font-bold">{h.puntuaciones.control_volante} pts</span></div>
+                        <div>Espejos: <span className="font-bold">{h.puntuaciones.uso_espejos} pts</span></div>
+                        <div>Señales: <span className="font-bold">{h.puntuaciones.respeto_senalizacion} pts</span></div>
+                        <div>Estacionamiento: <span className="font-bold">{h.puntuaciones.maniobras_estacionamiento} pts</span></div>
+                        <div>Confianza: <span className="font-bold">{h.puntuaciones.confianza_general} pts</span></div>
+                        <div>Estado: <span className={`font-extrabold uppercase ${h.es_apto ? 'text-emerald-700' : 'text-amber-700'}`}>{h.es_apto ? 'APTO MUNICIPAL' : 'NO APTO'}</span></div>
                       </div>
                     )}
 

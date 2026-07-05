@@ -23,11 +23,10 @@ export default function TopBar({ sedeActiva, onSetSede, user }) {
                   key={tab.id}
                   id={`tab-btn-${tab.id}`}
                   onClick={() => onSetSede(tab.id)}
-                  className={`px-6 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                    isActive
-                      ? 'bg-white text-primary shadow-sm ring-1 ring-black/5'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                  }`}
+                  className={`px-6 py-1.5 text-sm font-medium rounded-md transition-colors ${isActive
+                    ? 'bg-white text-primary shadow-sm ring-1 ring-black/5'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    }`}
                 >
                   {tab.label}
                 </button>

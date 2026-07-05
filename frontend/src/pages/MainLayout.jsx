@@ -8,6 +8,7 @@ import InstructoresView from './InstructoresView';
 import EstudiantesView from './EstudiantesView';
 import FlotaView from './FlotaView';
 import InstructorPortalView from './InstructorPortalView';
+import ProgresoEstudianteView from './ProgresoEstudianteView';
 import Proximamente from '../components/Proximamente';
 
 export default function MainLayout({ user, onLogout }) {
@@ -38,6 +39,8 @@ export default function MainLayout({ user, onLogout }) {
         return <ReservasView user={user} sedeActiva={sedeActiva} />;
       case 'portal_instructor':
         return <InstructorPortalView user={user} />;
+      case 'progreso_estudiante':
+        return <ProgresoEstudianteView user={user} />;
       case 'instructores':
         return <InstructoresView sedeActiva={sedeActiva} />;
       case 'estudiantes':

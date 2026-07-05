@@ -1,5 +1,16 @@
 const { AppDataSource } = require('../db/data-source');
 
+function calcularNota(puntajeTotal) {
+  const p = Math.max(0, Math.min(25, Number(puntajeTotal) || 0));
+  let nota;
+  if (p >= 15) {
+    nota = 4.0 + 0.3 * (p - 15);
+  } else {
+    nota = 1.0 + 0.2 * p;
+  }
+  return parseFloat(nota.toFixed(1));
+}
+
 const obtenerClasesHoy = async (instructorId, fechaStr) => {
   const repo = AppDataSource.getRepository('Reserva');
   
@@ -142,18 +153,26 @@ const obtenerEstudiantes = async (instructorId) => {
 
   const estudiantes = await qb.orderBy('u.nombre', 'ASC').getRawMany();
 
-  // Traer el promedio de evaluaciones de cada estudiante
+  // Traer el promedio y estado de aptitud de evaluaciones de cada estudiante
   const repoEval = AppDataSource.getRepository('EvaluacionInstructor');
   for (const est of estudiantes) {
     const evals = await repoEval.find({ where: { estudiante_id: est.id } });
     if (evals.length > 0) {
-      const suma = evals.reduce((acc, ev) => {
-        const promEv = (ev.control_volante + ev.uso_espejos + ev.respeto_senalizacion + ev.maniobras_estacionamiento + ev.confianza_general) / 5;
-        return acc + promEv;
+      const sumaNotas = evals.reduce((acc, ev) => {
+        const pTotal = ev.puntaje_total ?? (ev.control_volante + ev.uso_espejos + ev.respeto_senalizacion + ev.maniobras_estacionamiento + ev.confianza_general);
+        const notaEv = ev.nota ?? calcularNota(pTotal);
+        return acc + notaEv;
       }, 0);
-      est.evaluacion_promedio = parseFloat((suma / evals.length).toFixed(1));
+      est.evaluacion_promedio = parseFloat((sumaNotas / evals.length).toFixed(1));
+      
+      // El estado de aptitud lo determina su última evaluación
+      const ultimaEval = evals[evals.length - 1];
+      const pUltimo = ultimaEval.puntaje_total ?? (ultimaEval.control_volante + ultimaEval.uso_espejos + ultimaEval.respeto_senalizacion + ultimaEval.maniobras_estacionamiento + ultimaEval.confianza_general);
+      const notaUltima = ultimaEval.nota ?? calcularNota(pUltimo);
+      est.es_apto = ultimaEval.es_apto ?? (notaUltima >= 4.0);
     } else {
       est.evaluacion_promedio = null;
+      est.es_apto = null;
     }
   }
 
@@ -166,16 +185,31 @@ const guardarEvaluacion = async (data) => {
   if (data.es_teorica && !obs.startsWith('[Teórica]')) {
     obs = '[Teórica] ' + obs;
   }
+
+  const c1 = Number(data.control_volante) >= 0 ? Number(data.control_volante) : 5;
+  const c2 = Number(data.uso_espejos) >= 0 ? Number(data.uso_espejos) : 5;
+  const c3 = Number(data.respeto_senalizacion) >= 0 ? Number(data.respeto_senalizacion) : 5;
+  const c4 = Number(data.maniobras_estacionamiento) >= 0 ? Number(data.maniobras_estacionamiento) : 5;
+  const c5 = Number(data.confianza_general) >= 0 ? Number(data.confianza_general) : 5;
+
+  const puntajeTotal = c1 + c2 + c3 + c4 + c5;
+  const nota = calcularNota(puntajeTotal);
+  const esApto = nota >= 4.0;
+  const listoExamen = esApto ? 'si' : 'no';
+
   const nueva = repo.create({
     reserva_id: data.reserva_id || null,
     instructor_id: data.instructor_id,
     estudiante_id: data.estudiante_id,
-    control_volante: data.control_volante || 5,
-    uso_espejos: data.uso_espejos || 5,
-    respeto_senalizacion: data.respeto_senalizacion || 5,
-    maniobras_estacionamiento: data.maniobras_estacionamiento || 5,
-    confianza_general: data.confianza_general || 5,
-    listo_examen: data.listo_examen || 'si',
+    control_volante: c1,
+    uso_espejos: c2,
+    respeto_senalizacion: c3,
+    maniobras_estacionamiento: c4,
+    confianza_general: c5,
+    puntaje_total: puntajeTotal,
+    nota: nota,
+    es_apto: esApto,
+    listo_examen: listoExamen,
     observaciones: obs,
   });
   return await repo.save(nueva);
@@ -198,6 +232,10 @@ const obtenerEvaluacionesEstudiante = async (estudianteId) => {
     );
     const obsLimpia = ev.observaciones?.startsWith('[Teórica] ') ? ev.observaciones.replace('[Teórica] ', '') : ev.observaciones;
 
+    const puntajeTotal = ev.puntaje_total ?? (ev.control_volante + ev.uso_espejos + ev.respeto_senalizacion + ev.maniobras_estacionamiento + ev.confianza_general);
+    const nota = ev.nota ?? calcularNota(puntajeTotal);
+    const esApto = ev.es_apto ?? (nota >= 4.0);
+
     return {
       id: ev.id,
       fecha: ev.created_at,
@@ -211,8 +249,10 @@ const obtenerEvaluacionesEstudiante = async (estudianteId) => {
         maniobras_estacionamiento: ev.maniobras_estacionamiento,
         confianza_general: ev.confianza_general,
       },
-      promedio: parseFloat(((ev.control_volante + ev.uso_espejos + ev.respeto_senalizacion + ev.maniobras_estacionamiento + ev.confianza_general) / 5).toFixed(1)),
-      listo_examen: ev.listo_examen,
+      puntaje_total: puntajeTotal,
+      nota: nota,
+      es_apto: esApto,
+      listo_examen: ev.listo_examen || (esApto ? 'si' : 'no'),
       observaciones: obsLimpia,
     };
   });
@@ -223,4 +263,5 @@ module.exports = {
   obtenerEstudiantes,
   guardarEvaluacion,
   obtenerEvaluacionesEstudiante,
+  calcularNota,
 };

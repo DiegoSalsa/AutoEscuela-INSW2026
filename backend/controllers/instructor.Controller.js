@@ -37,7 +37,9 @@ const postEvaluacion = async (req, res) => {
 
 const getEvaluacionesEstudiante = async (req, res) => {
   try {
-    const estudianteId = parseInt(req.params.estudianteId, 10);
+    const parsed = parseInt(req.params.estudianteId, 10);
+    const estudianteId = (!isNaN(parsed) && Number.isInteger(parsed)) ? parsed : 0;
+    if (!estudianteId) return res.json([]);
     const evaluaciones = await instructorService.obtenerEvaluacionesEstudiante(estudianteId);
     res.json(evaluaciones);
   } catch (error) {

@@ -3,7 +3,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f3f4f6; /* Fondo gris claro neutral */
+  background-color: #f3f4f6;
+  /* Fondo gris claro neutral */
   font-family: 'Inter', -apple-system, sans-serif;
   padding: 2rem;
 }
@@ -21,7 +22,8 @@
 .login-simple-title {
   font-size: 2rem;
   font-weight: 700;
-  color: #1e3a8a; /* Azul oscuro */
+  color: #1e3a8a;
+  /* Azul oscuro */
   margin: 0 0 0.5rem 0;
 }
 
@@ -143,4 +145,34 @@
 
 .btn-student:hover:not(:disabled) {
   background-color: #1d4ed8;
+}
+
+.login-quick-access {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.quick-btn {
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #475569;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.quick-btn:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.quick-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }

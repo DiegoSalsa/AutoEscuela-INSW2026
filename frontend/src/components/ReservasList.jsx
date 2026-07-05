@@ -5,13 +5,13 @@ import { es } from 'date-fns/locale';
 import './ReservasList.css';
 
 const ESTADO_LABELS = {
-  confirmada:  { label: 'Confirmada',  color: '#16a34a' },
+  confirmada: { label: 'Confirmada', color: '#16a34a' },
   en_progreso: { label: 'En progreso', color: '#2563eb' },
-  proxima:     { label: 'Próxima',     color: '#7c3aed' },
-  completada:  { label: 'Completada',  color: '#0891b2' },
-  cancelada:   { label: 'Cancelada',   color: '#dc2626' },
-  expirada:    { label: 'Expirada',    color: '#6b7280' },
-  pendiente:   { label: 'Pendiente',   color: '#d97706' },
+  proxima: { label: 'Próxima', color: '#7c3aed' },
+  completada: { label: 'Completada', color: '#0891b2' },
+  cancelada: { label: 'Cancelada', color: '#dc2626' },
+  expirada: { label: 'Expirada', color: '#6b7280' },
+  pendiente: { label: 'Pendiente', color: '#d97706' },
 };
 
 // Reservas completadas más antiguas que este umbral van al historial oculto
@@ -32,7 +32,7 @@ export default function ReservasList({ rol, estudianteId, onEditar, sedeActiva }
   const [fechaInicioBuscador, setFechaInicioBuscador] = useState('');
   const [fechaFinBuscador, setFechaFinBuscador] = useState('');
 
-  const cargar = useCallback(async () => {
+  const cargar = useCallback(async (overrideInicio, overrideFin) => {
     setCargando(true);
     setError(null);
     try {
@@ -40,9 +40,12 @@ export default function ReservasList({ rol, estudianteId, onEditar, sedeActiva }
       if (sedeActiva && sedeActiva !== 'all') {
         filtros.sedeId = sedeActiva;
       }
-      if (fechaInicioBuscador) filtros.fechaInicio = fechaInicioBuscador;
-      if (fechaFinBuscador) filtros.fechaFin = fechaFinBuscador;
-      
+      const finicio = overrideInicio !== undefined ? overrideInicio : fechaInicioBuscador;
+      const ffin = overrideFin !== undefined ? overrideFin : fechaFinBuscador;
+
+      if (finicio) filtros.fechaInicio = finicio;
+      if (ffin) filtros.fechaFin = ffin;
+
       const data = await getReservas(filtros);
       setReservas(data);
     } catch (e) {
@@ -52,7 +55,10 @@ export default function ReservasList({ rol, estudianteId, onEditar, sedeActiva }
     }
   }, [esAdmin, estudianteId, fechaInicioBuscador, fechaFinBuscador, sedeActiva]);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  // Excluir fechaInicioBuscador y fechaFinBuscador de las dependencias iniciales para que no recargue al presionar las flechas en el calendario del input
+  useEffect(() => {
+    cargar();
+  }, [esAdmin, estudianteId, sedeActiva]);
 
   const handleCancelar = async (reserva) => {
     if (!window.confirm(`¿Cancelar la reserva del ${format(new Date(reserva.fecha_inicio), "d 'de' MMMM 'a las' HH:mm", { locale: es })}?`)) return;
@@ -73,9 +79,9 @@ export default function ReservasList({ rol, estudianteId, onEditar, sedeActiva }
     // Misma regla que el backend: comparar solo el DÍA (medianoche), no la hora exacta.
     // Clase el 10/05 → puede modificar hasta el 7/05 inclusive (3+ días de diferencia).
     // El 8/05 y el 9/05 quedan bloqueados sin importar la hora.
-    const hoy      = new Date();
-    const diaHoy   = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-    const fi       = new Date(reserva.fecha_inicio);
+    const hoy = new Date();
+    const diaHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    const fi = new Date(reserva.fecha_inicio);
     const diaClase = new Date(fi.getFullYear(), fi.getMonth(), fi.getDate());
     const diffDias = (diaClase - diaHoy) / (1000 * 60 * 60 * 24);
     return diffDias >= 3;
@@ -94,7 +100,7 @@ export default function ReservasList({ rol, estudianteId, onEditar, sedeActiva }
   // Historial: canceladas, expiradas y completadas antiguas
   const reservasHistorial = reservas.filter(
     r => ['cancelada', 'expirada'].includes(r.estado)
-       || (r.estado === 'completada' && diasDesde(r.fecha_inicio) > DIAS_UMBRAL_COMPLETADAS)
+      || (r.estado === 'completada' && diasDesde(r.fecha_inicio) > DIAS_UMBRAL_COMPLETADAS)
   );
 
   const totalHistorial = reservasHistorial.length;
@@ -165,9 +171,6 @@ export default function ReservasList({ rol, estudianteId, onEditar, sedeActiva }
     </div>
   );
 
-  if (cargando) return <div className="rl-empty">Cargando reservas...</div>;
-  if (error)    return <div className="rl-empty rl-error">{error}</div>;
-
   return (
     <div className="rl-container">
 
@@ -177,72 +180,91 @@ export default function ReservasList({ rol, estudianteId, onEditar, sedeActiva }
         <div className="rl-search-body">
           <div className="rl-search-inputs">
             <span className="rl-search-label">Fecha Inicio/Fin</span>
-            <input 
-              type="date" 
+            <input
+              type="date"
               className="rl-search-input"
               value={fechaInicioBuscador}
               onChange={(e) => setFechaInicioBuscador(e.target.value)}
             />
             <span className="rl-search-separator">⇄</span>
-            <input 
-              type="date" 
+            <input
+              type="date"
               className="rl-search-input"
               value={fechaFinBuscador}
               onChange={(e) => setFechaFinBuscador(e.target.value)}
             />
           </div>
-          <button className="rl-btn rl-search-btn" onClick={() => cargar()}>
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4 mr-2 inline">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            Buscar
-          </button>
+          <div className="flex items-center gap-2">
+            <button className="rl-btn rl-search-btn" onClick={() => cargar()}>
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4 mr-2 inline">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              Buscar
+            </button>
+            {(fechaInicioBuscador || fechaFinBuscador) && (
+              <button
+                type="button"
+                className="rl-btn bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+                onClick={() => { setFechaInicioBuscador(''); setFechaFinBuscador(''); cargar('', ''); }}
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* ── Reservas activas ──────────────────────────────────────────────── */}
-      <div className="rl-section">
-        <h3 className="rl-section-title">
-          {esAdmin
-            ? `Reservas activas (${reservasActivas.length})`
-            : `Mis reservas activas (${reservasActivas.length})`}
-        </h3>
-        {reservasActivas.length === 0
-          ? <p className="rl-empty">No hay reservas activas.</p>
-          : renderTabla(reservasActivas, true)}
-      </div>
-
-      {/* ── Completadas recientes ─────────────────────────────────────────── */}
-      {completadasRecientes.length > 0 && (
-        <div className="rl-section">
-          <h3 className="rl-section-title rl-section-title--completadas">
-            Completadas recientemente ({completadasRecientes.length})
-            <span className="rl-hint">últimos {DIAS_UMBRAL_COMPLETADAS} días</span>
-          </h3>
-          {renderTabla(completadasRecientes, false)}
-        </div>
-      )}
-
-      {/* ── Historial (oculto por defecto) ────────────────────────────────── */}
-      {totalHistorial > 0 && (
-        <div className="rl-section rl-section-historial">
-          <div className="rl-historial-header">
+      {cargando ? (
+        <div className="rl-empty py-12 text-center text-gray-500 font-medium">Cargando reservas...</div>
+      ) : error ? (
+        <div className="rl-empty rl-error py-12 text-center text-red-600 font-medium">{error}</div>
+      ) : (
+        <>
+          {/* ── Reservas activas ──────────────────────────────────────────────── */}
+          <div className="rl-section">
             <h3 className="rl-section-title">
               {esAdmin
-                ? `Historial (${totalHistorial})`
-                : `Mi historial (${totalHistorial})`}
-              <span className="rl-hint">canceladas, expiradas y completadas antiguas</span>
+                ? `Reservas activas (${reservasActivas.length})`
+                : `Mis reservas activas (${reservasActivas.length})`}
             </h3>
-            <button
-              className="rl-btn-toggle"
-              onClick={() => setMostrarHistorial(v => !v)}
-            >
-              {mostrarHistorial ? 'Ocultar historial' : `Mostrar historial (${totalHistorial})`}
-            </button>
+            {reservasActivas.length === 0
+              ? <p className="rl-empty">No hay reservas activas.</p>
+              : renderTabla(reservasActivas, true)}
           </div>
 
-          {mostrarHistorial && renderTabla(reservasHistorial, false)}
-        </div>
+          {/* ── Completadas recientes ─────────────────────────────────────────── */}
+          {completadasRecientes.length > 0 && (
+            <div className="rl-section">
+              <h3 className="rl-section-title rl-section-title--completadas">
+                Completadas recientemente ({completadasRecientes.length})
+                <span className="rl-hint">últimos {DIAS_UMBRAL_COMPLETADAS} días</span>
+              </h3>
+              {renderTabla(completadasRecientes, false)}
+            </div>
+          )}
+
+          {/* ── Historial (oculto por defecto) ────────────────────────────────── */}
+          {totalHistorial > 0 && (
+            <div className="rl-section rl-section-historial">
+              <div className="rl-historial-header">
+                <h3 className="rl-section-title">
+                  {esAdmin
+                    ? `Historial (${totalHistorial})`
+                    : `Mi historial (${totalHistorial})`}
+                  <span className="rl-hint">canceladas, expiradas y completadas antiguas</span>
+                </h3>
+                <button
+                  className="rl-btn-toggle"
+                  onClick={() => setMostrarHistorial(v => !v)}
+                >
+                  {mostrarHistorial ? 'Ocultar historial' : `Mostrar historial (${totalHistorial})`}
+                </button>
+              </div>
+
+              {mostrarHistorial && renderTabla(reservasHistorial, false)}
+            </div>
+          )}
+        </>
       )}
 
     </div>
