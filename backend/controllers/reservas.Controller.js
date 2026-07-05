@@ -203,7 +203,7 @@ const obtenerReservaPorId = async (req, res) => {
 const actualizarReserva = async (req, res) => {
   try {
     const { id } = req.params;
-    const esAdmin = req.headers['x-rol'] === 'admin';
+    const esAdmin = req.headers['x-rol'] === 'admin' || req.headers['x-rol'] === 'recepcionista';
     const reserva = await reservasService.actualizarReservaTransaccional(
       parseInt(id, 10),
       req.body,
@@ -236,7 +236,7 @@ const actualizarReserva = async (req, res) => {
 const cancelarReserva = async (req, res) => {
   try {
     const { id } = req.params;
-    const esAdmin = req.headers['x-rol'] === 'admin';
+    const esAdmin = req.headers['x-rol'] === 'admin' || req.headers['x-rol'] === 'recepcionista';
     const reserva = await reservasService.cancelarReserva(parseInt(id, 10), esAdmin);
     emitirEventoReserva('reserva:cancelada', reserva);
 

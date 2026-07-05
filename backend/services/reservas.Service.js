@@ -183,13 +183,6 @@ const obtenerReservas = async (filtros) => {
 
   const resultados = await qb.orderBy('r.fecha_inicio', 'ASC').getRawMany();
 
-  // LOG importante: cuántas reservas teóricas (sin vehículo) hay
-  const teoricas = resultados.filter(r => !r.vehiculo_id);
-  console.log(`[RESERVAS] Total: ${resultados.length}, Teóricas: ${teoricas.length}`);
-  if (teoricas.length > 0) {
-    console.log('IDs de teóricas:', teoricas.map(r => ({ id: r.id, tipo: r.tipo_clase_nombre })));
-  }
-
   // Devolver fechas sin doble conversión de zona horaria
   return resultados.map(r => ({
     ...r,

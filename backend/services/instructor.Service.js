@@ -85,9 +85,10 @@ const obtenerClasesHoy = async (instructorId, fechaStr) => {
 
 const obtenerEstudiantes = async (instructorId) => {
   const repoUsuario = AppDataSource.getRepository('Usuario');
+  let estudiantes = [];
   
   if (instructorId === null) {
-    const estudiantes = await repoUsuario.createQueryBuilder('u')
+    estudiantes = await repoUsuario.createQueryBuilder('u')
       .select([
         'u.id AS id',
         'u.nombre AS nombre',
@@ -101,59 +102,43 @@ const obtenerEstudiantes = async (instructorId) => {
       .andWhere("u.estado = 'activo'")
       .orderBy('u.nombre', 'ASC')
       .getRawMany();
-
-    const repoEval = AppDataSource.getRepository('EvaluacionInstructor');
-    for (const est of estudiantes) {
-      const evals = await repoEval.find({ where: { estudiante_id: est.id } });
-      if (evals.length > 0) {
-        const suma = evals.reduce((acc, ev) => {
-          const promEv = (ev.control_volante + ev.uso_espejos + ev.respeto_senalizacion + ev.maniobras_estacionamiento + ev.confianza_general) / 5;
-          return acc + promEv;
-        }, 0);
-        est.evaluacion_promedio = parseFloat((suma / evals.length).toFixed(1));
-      } else {
-        est.evaluacion_promedio = null;
-      }
-    }
-    return estudiantes;
-  }
-
-  // Obtener la licencia del instructor
-  const instructor = await repoUsuario.findOne({ where: { id: instructorId } });
-  const licenciaInstructor = instructor?.tipo_clase || instructor?.especialidad;
-
-  // Buscar estudiantes que tengan reservas con este instructor O compartan la misma licencia en la misma sede
-  const qb = repoUsuario.createQueryBuilder('u')
-    .select([
-      'u.id AS id',
-      'u.nombre AS nombre',
-      'u.email AS email',
-      'u.telefono AS telefono',
-      'u.tipo_clase AS tipo_clase',
-      'u.calificacion_promedio AS calificacion_promedio',
-      'u.total_clases_completadas AS total_clases_completadas',
-    ])
-    .where("u.rol = 'estudiante'")
-    .andWhere("u.estado = 'activo'");
-
-  const sedeId = instructor?.sede_id || 1;
-
-  if (licenciaInstructor) {
-    qb.andWhere("((u.sede_id = :sedeId AND (u.tipo_clase = :licencia OR u.tipo_clase IS NULL)) OR u.id IN (SELECT estudiante_id FROM reservas WHERE instructor_id = :instructorId))", {
-      sedeId,
-      licencia: licenciaInstructor,
-      instructorId
-    });
   } else {
-    qb.andWhere("(u.sede_id = :sedeId OR u.id IN (SELECT estudiante_id FROM reservas WHERE instructor_id = :instructorId))", {
-      sedeId,
-      instructorId
-    });
+    // Obtener la licencia del instructor
+    const instructor = await repoUsuario.findOne({ where: { id: instructorId } });
+    const licenciaInstructor = instructor?.tipo_clase || instructor?.especialidad;
+    const sedeId = instructor?.sede_id || 1;
+
+    // Buscar estudiantes que tengan reservas con este instructor O compartan la misma licencia en la misma sede
+    const qb = repoUsuario.createQueryBuilder('u')
+      .select([
+        'u.id AS id',
+        'u.nombre AS nombre',
+        'u.email AS email',
+        'u.telefono AS telefono',
+        'u.tipo_clase AS tipo_clase',
+        'u.calificacion_promedio AS calificacion_promedio',
+        'u.total_clases_completadas AS total_clases_completadas',
+      ])
+      .where("u.rol = 'estudiante'")
+      .andWhere("u.estado = 'activo'");
+
+    if (licenciaInstructor) {
+      qb.andWhere("((u.sede_id = :sedeId AND (u.tipo_clase = :licencia OR u.tipo_clase IS NULL)) OR u.id IN (SELECT estudiante_id FROM reservas WHERE instructor_id = :instructorId))", {
+        sedeId,
+        licencia: licenciaInstructor,
+        instructorId
+      });
+    } else {
+      qb.andWhere("(u.sede_id = :sedeId OR u.id IN (SELECT estudiante_id FROM reservas WHERE instructor_id = :instructorId))", {
+        sedeId,
+        instructorId
+      });
+    }
+
+    estudiantes = await qb.orderBy('u.nombre', 'ASC').getRawMany();
   }
 
-  const estudiantes = await qb.orderBy('u.nombre', 'ASC').getRawMany();
-
-  // Traer el promedio y estado de aptitud de evaluaciones de cada estudiante
+  // Traer el promedio y estado de aptitud de evaluaciones de cada estudiante (unificado para todos los casos)
   const repoEval = AppDataSource.getRepository('EvaluacionInstructor');
   for (const est of estudiantes) {
     const evals = await repoEval.find({ where: { estudiante_id: est.id } });

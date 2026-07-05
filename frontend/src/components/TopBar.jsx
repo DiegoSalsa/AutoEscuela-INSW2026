@@ -7,7 +7,7 @@ const tabs = [
 ];
 
 export default function TopBar({ sedeActiva, onSetSede, user }) {
-  const isAdmin = !user || user.rol === 'admin';
+  const isAdmin = !user || user.rol === 'admin' || user.rol === 'recepcionista';
 
   return (
     <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 font-body">

@@ -32,4 +32,17 @@ const optionalAuth = (req, res, next) => {
     next();
 };
 
-module.exports = { authenticate, optionalAuth };
+// Middleware para autorizar por rol
+const authorizeRol = (...rolesPermitidos) => {
+    return (req, res, next) => {
+        const rol = req.user?.rol || req.headers['x-rol'];
+        if (rol && !rolesPermitidos.includes(rol)) {
+            return res.status(403).json({ 
+                error: `Acceso denegado: el rol '${rol}' no tiene permiso para acceder a esta sección o recurso.` 
+            });
+        }
+        next();
+    };
+};
+
+module.exports = { authenticate, optionalAuth, authorizeRol };

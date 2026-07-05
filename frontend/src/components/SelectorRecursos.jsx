@@ -61,7 +61,7 @@ export default function SelectorRecursos({ selecciones, onSelect, requiereVehicu
     return <div className="selector-recursos"><p className="text-muted text-sm">Cargando recursos...</p></div>;
   }
 
-  const isAdmin = !user || user.rol === 'admin';
+  const isAdmin = !user || user.rol === 'admin' || user.rol === 'recepcionista';
   const estSeleccionado = estudiantes.find(e => e.id === selecciones.estudianteId);
   const licenciaEstudiante = user?.rol === 'estudiante' ? user?.tipo_clase : estSeleccionado?.tipo_clase;
 

@@ -22,7 +22,7 @@ function diasDesde(fecha) {
 }
 
 export default function ReservasList({ rol, estudianteId, onEditar, sedeActiva }) {
-  const esAdmin = rol === 'admin';
+  const esAdmin = rol === 'admin' || rol === 'recepcionista';
 
   const [reservas, setReservas] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -49,11 +49,11 @@ export default function ReservasList({ rol, estudianteId, onEditar, sedeActiva }
       const data = await getReservas(filtros);
       setReservas(data);
     } catch (e) {
-      setError('No se pudieron cargar las reservas.');
+      setError(e.message);
     } finally {
       setCargando(false);
     }
-  }, [esAdmin, estudianteId, fechaInicioBuscador, fechaFinBuscador, sedeActiva]);
+  }, [esAdmin, estudianteId, sedeActiva, fechaInicioBuscador, fechaFinBuscador]);
 
   // Excluir fechaInicioBuscador y fechaFinBuscador de las dependencias iniciales para que no recargue al presionar las flechas en el calendario del input
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function ReservasList({ rol, estudianteId, onEditar, sedeActiva }
   };
 
   const puedeAccionar = (reserva) => {
-    if (rol === 'admin') return true;
+    if (rol === 'admin' || rol === 'recepcionista') return true;
 
     // Misma regla que el backend: comparar solo el DÍA (medianoche), no la hora exacta.
     // Clase el 10/05 → puede modificar hasta el 7/05 inclusive (3+ días de diferencia).

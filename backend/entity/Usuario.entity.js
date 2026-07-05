@@ -7,6 +7,7 @@ const Usuario = new EntitySchema({
     id: { primary: true, type: 'int', generated: true },
     nombre: { type: 'varchar', nullable: true },
     email: { type: 'varchar', nullable: true },
+    password_hash: { type: 'varchar', nullable: true },
     telefono: { type: 'varchar', nullable: true },
     rut: { type: 'varchar', nullable: true },
     rol: { type: 'varchar', nullable: true },
