@@ -16,6 +16,7 @@ const Vehiculo = new EntitySchema({
     fecha_revision_tecnica: { type: 'date', nullable: true },
     imagen_url: { type: 'varchar', length: 500, nullable: true },
     imagen_public_id: { type: 'varchar', length: 255, nullable: true },
+    tipo_licencia: { type: 'varchar', length: 20, nullable: true },
     demo_seed: { type: 'varchar', nullable: true },
   },
   relations: {

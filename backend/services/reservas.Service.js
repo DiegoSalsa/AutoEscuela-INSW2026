@@ -98,6 +98,19 @@ const crearReservaTransaccional = async (reservaData) => {
       if (vehiculoId) {
         vehiculo = await repoVehiculo.findOne({ where: { id: vehiculoId, sede_id: sedeId, estado: 'disponible' } });
         if (!vehiculo) throw httpError('El vehículo no existe, no está disponible o no pertenece a esta sede.', 404);
+
+        // Validar compatibilidad licencia-vehículo: A y B solo auto, C solo moto
+        if (licEst) {
+          const licNorm = licEst.replace(/clase\s*/i, '').trim().toUpperCase();
+          const tipoVeh = (vehiculo.tipo_licencia || '').toLowerCase();
+          if ((licNorm === 'A' || licNorm === 'B') && tipoVeh === 'moto') {
+            throw httpError(`Los estudiantes de Clase ${licNorm} solo pueden usar autos, no motocicletas.`, 400);
+          }
+          if (licNorm === 'C' && tipoVeh !== 'moto') {
+            throw httpError('Los estudiantes de Clase C solo pueden usar motocicletas.', 400);
+          }
+        }
+
         await validarTrasladoVehicular(repoReserva, vehiculoId, sedeId, fechaInicio, fechaFin);
       }
 
@@ -241,6 +254,20 @@ const actualizarReservaTransaccional = async (id, data, esAdmin = false) => {
       if (vehiculoId) {
         const vehiculo = await repoVehiculo.findOne({ where: { id: vehiculoId, sede_id: sedeId } });
         if (!vehiculo) throw httpError('El vehículo no existe o no pertenece a esta sede.', 404);
+
+        // Validar compatibilidad licencia-vehículo: A y B solo auto, C solo moto
+        const licEst = estudiante.tipo_clase;
+        if (licEst) {
+          const licNorm = licEst.replace(/clase\s*/i, '').trim().toUpperCase();
+          const tipoVeh = (vehiculo.tipo_licencia || '').toLowerCase();
+          if ((licNorm === 'A' || licNorm === 'B') && tipoVeh === 'moto') {
+            throw httpError(`Los estudiantes de Clase ${licNorm} solo pueden usar autos, no motocicletas.`, 400);
+          }
+          if (licNorm === 'C' && tipoVeh !== 'moto') {
+            throw httpError('Los estudiantes de Clase C solo pueden usar motocicletas.', 400);
+          }
+        }
+
         await validarTrasladoVehicular(repoReserva, vehiculoId, sedeId, fechaInicio, fechaFin);
       }
 

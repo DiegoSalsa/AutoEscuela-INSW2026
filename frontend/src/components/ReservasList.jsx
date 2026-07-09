@@ -61,7 +61,7 @@ export default function ReservasList({ rol, estudianteId, onEditar, sedeActiva }
   }, [esAdmin, estudianteId, sedeActiva]);
 
   const handleCancelar = async (reserva) => {
-    if (!window.confirm(`¿Cancelar la reserva del ${format(new Date(reserva.fecha_inicio), "d 'de' MMMM 'a las' HH:mm", { locale: es })}?`)) return;
+    if (!window.confirm(`¿Cancelar la reserva del ${format(new Date(reserva.fecha_inicio), "dd/MM/yyyy 'a las' HH:mm", { locale: es })}?`)) return;
     setCancelando(reserva.id);
     try {
       await apiCancelar(reserva.id, rol);
@@ -135,7 +135,7 @@ export default function ReservasList({ rol, estudianteId, onEditar, sedeActiva }
                 <td>{r.tipo_clase_nombre || 'Sin tipo'}</td>
                 <td>
                   {r.fecha_inicio
-                    ? format(new Date(r.fecha_inicio), "d MMM yyyy, HH:mm", { locale: es })
+                    ? format(new Date(r.fecha_inicio), "dd/MM/yyyy, HH:mm", { locale: es })
                     : '—'}
                 </td>
                 <td>

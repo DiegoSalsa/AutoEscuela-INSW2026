@@ -22,7 +22,7 @@ export default function PanelDetalles({ selecciones, tipoClaseId, fecha, hora, i
       {isReady && !exito && (
         <div className="resumen">
           <p className="resumen-item">
-            <strong>Fecha:</strong> {format(fecha, "d 'de' MMMM, yyyy", { locale: es })}
+            <strong>Fecha:</strong> {format(fecha, "dd/MM/yyyy", { locale: es })}
           </p>
           <p className="resumen-item">
             <strong>Hora:</strong> {hora.horaInicio} - {hora.horaFin}

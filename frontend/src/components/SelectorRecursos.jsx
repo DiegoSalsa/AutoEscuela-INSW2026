@@ -113,7 +113,31 @@ export default function SelectorRecursos({ selecciones, onSelect, requiereVehicu
           <label>Vehículo</label>
           <select name="vehiculoId" value={selecciones.vehiculoId || ''} onChange={handleChange} disabled={!selecciones.sedeId}>
             <option value="">Seleccione Vehículo...</option>
-            {vehiculos.map(v => <option key={v.id} value={v.id}>{v.patente} — {v.modelo}</option>)}
+            {vehiculos.map(v => {
+              const tipoVeh = (v.tipo_licencia || '').toLowerCase();
+              let incompatible = false;
+              let razon = '';
+              if (licenciaEstudiante) {
+                const licNorm = licenciaEstudiante.replace(/clase\s*/i, '').trim().toUpperCase();
+                if ((licNorm === 'A' || licNorm === 'B') && tipoVeh === 'moto') {
+                  incompatible = true;
+                  razon = 'Solo motos - Incompatible';
+                } else if (licNorm === 'C' && tipoVeh !== 'moto') {
+                  incompatible = true;
+                  razon = 'Solo autos - Incompatible';
+                }
+              }
+              return (
+                <option
+                  key={v.id}
+                  value={v.id}
+                  disabled={incompatible}
+                  style={incompatible ? { color: '#9ca3af', backgroundColor: '#f3f4f6' } : {}}
+                >
+                  {v.patente} — {v.modelo} {incompatible ? `(${razon})` : tipoVeh ? `(${tipoVeh})` : ''}
+                </option>
+              );
+            })}
           </select>
         </div>
       )}

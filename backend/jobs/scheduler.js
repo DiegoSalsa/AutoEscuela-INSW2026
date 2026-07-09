@@ -33,6 +33,7 @@ const iniciarScheduler = () => {
   cron.schedule('* * * * *', async () => {
     try {
       const repo = AppDataSource.getRepository('Reserva');
+      const repoVehiculo = AppDataSource.getRepository('Vehiculo');
       const resultado = await repo.createQueryBuilder()
         .update('Reserva')
         .set({ estado: 'en_progreso' })
@@ -44,7 +45,13 @@ const iniciarScheduler = () => {
       const afectadas = resultado.raw || [];
       if (afectadas.length > 0) {
         console.log(`${afectadas.length} reserva(s) activada(s) -> en_progreso`);
-        afectadas.forEach((r) => emitirEventoReserva('reserva:actualizada', r));
+        // Marcar vehículos como 'en_clase'
+        for (const r of afectadas) {
+          if (r.vehiculo_id) {
+            await repoVehiculo.update(r.vehiculo_id, { estado: 'en_clase' });
+          }
+          emitirEventoReserva('reserva:actualizada', r);
+        }
       }
     } catch (err) {
       console.error('Error en job activar en curso:', err.message);
@@ -55,6 +62,7 @@ const iniciarScheduler = () => {
   cron.schedule('* * * * *', async () => {
     try {
       const repo = AppDataSource.getRepository('Reserva');
+      const repoVehiculo = AppDataSource.getRepository('Vehiculo');
       const resultado = await repo.createQueryBuilder()
         .update('Reserva')
         .set({ estado: 'completada' })
@@ -66,7 +74,19 @@ const iniciarScheduler = () => {
       const afectadas = resultado.raw || [];
       if (afectadas.length > 0) {
         console.log(`${afectadas.length} reserva(s) finalizada(s) -> completada`);
-        afectadas.forEach((r) => emitirEventoReserva('reserva:actualizada', r));
+        for (const r of afectadas) {
+          // Liberar vehículo solo si no tiene otra reserva activa en este momento
+          if (r.vehiculo_id) {
+            const otraActiva = await repo.createQueryBuilder('r2')
+              .where('r2.vehiculo_id = :vid', { vid: r.vehiculo_id })
+              .andWhere("r2.estado = 'en_progreso'")
+              .getCount();
+            if (otraActiva === 0) {
+              await repoVehiculo.update(r.vehiculo_id, { estado: 'disponible' });
+            }
+          }
+          emitirEventoReserva('reserva:actualizada', r);
+        }
       }
     } catch (err) {
       console.error('Error en job finalizar completadas:', err.message);
