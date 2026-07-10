@@ -1,6 +1,15 @@
 ﻿const { AppDataSource } = require('../db/data-source');
 
 const HOY_SQL = `(CURRENT_TIMESTAMP AT TIME ZONE 'America/Santiago')::date`;
+const AHORA_CHILE_SQL = `(CURRENT_TIMESTAMP AT TIME ZONE 'America/Santiago')`;
+const ESTADO_VISUAL_CLASE_SQL = `
+  CASE
+    WHEN r.estado IN ('cancelada', 'expirada') THEN r.estado
+    WHEN r.fecha_inicio > ${AHORA_CHILE_SQL} THEN 'pendiente'
+    WHEN r.fecha_fin <= ${AHORA_CHILE_SQL} THEN 'completada'
+    ELSE 'en_progreso'
+  END
+`;
 
 const METRICAS_META = {
   clases_completadas: ['clases completadas', 'clases_completadas', 'clases'],
@@ -219,7 +228,7 @@ async function getClasesHoy(sedeId, fecha) {
   const qb = AppDataSource.getRepository('Reserva').createQueryBuilder('r')
     .select([
       'r.id AS reserva_id', 'e.nombre AS estudiante', 'i.nombre AS instructor',
-      'v.patente AS vehiculo', 'r.estado AS estado',
+      'v.patente AS vehiculo', `${ESTADO_VISUAL_CLASE_SQL} AS estado`,
       'r.fecha_inicio AS fecha_inicio', 'r.fecha_fin AS fecha_fin',
     ])
     .innerJoin('usuarios', 'e', 'r.estudiante_id = e.id')
